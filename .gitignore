@@ -1,0 +1,24 @@
+# ===========================================================================
+#  vulkan_Renderer .gitignore
+# ===========================================================================
+
+# 构建产物 / 中间文件
+bin/
+bin-int/
+build/
+*.exe
+*.pdb
+*.obj
+*.ilk
+*.tlog
+*.recipe
+*.pch
+
+# Visual Studio / IDE
+.vs/
+*.vcxproj.user
+*.suo
+*.user
+
+# 第三方库（vendor 下的 glfw / glm / stb_image 不入库）
+vendor/
