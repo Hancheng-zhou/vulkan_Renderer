@@ -50,7 +50,7 @@ public:
     // ---- 每帧驱动：主循环需要的全部零件 --------------------------------
     bool ShouldClose() const;
     void PollEvents();
-
+    bool RefreshFramebufferSize();
     // ---- 窗口信息 --------------------------------------------------------
     //  返回的是 framebuffer 尺寸（像素），不是窗口的逻辑尺寸。
     //  高 DPI 屏上后者可能是 800 而前者是 1600。
@@ -62,7 +62,16 @@ public:
     //  创建 VkSurfaceKHR 需要 GLFWwindow*。
     //  放这里而不是让 Application 直接碰 GLFW：窗口实现细节不外泄。
     GLFWwindow* GetNativeHandle() const { return m_Window; }
-
+    // ---- Win32 桥接 -------------------------------------------------------
+    //  返回 Win32 窗口句柄（HWND），Vulkan 创建 surface 需要它。
+    //
+    //  【为什么返回 void* 而不是 HWND】HWND 需要 <windows.h>，
+    //    那个头文件会带进几千个宏（min/max 会被它改成宏，很麻烦）。
+    //    放在 .cpp 里转换，头文件保持干净。
+    //
+    //  【平台相关性】这只在 Windows 上有意义。换平台时换成对应句柄类型
+    //    （X11 是 Window，Wayland 是 wl_surface*）。
+    void* GetNativeWin32Handle() const;
     //  返回 GLFW 要求的实例扩展列表。
     //
     //  【为什么要问它】创建 VkInstance 必须显式列出扩展。

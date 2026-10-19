@@ -49,9 +49,22 @@
 struct QueueFamilyIndices
 {
 	std::optional<uint32_t> GraphicsFamily;
+	std::optional<uint32_t> PresentFamily;
+	// 是否要求 present 队列。
+	// 有 surface 时为 true；离屏模式（无窗口）为 false ——
+	// 那种情况下没有东西要呈现，不该因为找不到 present 族就拒绝设备。
+	bool RequiresPresent = false;
 	bool IsComplete() const
 	{
-		return GraphicsFamily.has_value();
+		if(!GraphicsFamily.has_value())
+		{
+			return false;
+		}
+		if (RequiresPresent && !PresentFamily.has_value())
+		{
+			return false;
+		}
+		return true;
 	}
 };
 
@@ -90,6 +103,11 @@ public:
 		// 【为什么不在这里直接调用 GLFW】本层不应该知道窗口是谁提供的。
 		// 由 main 装配时注入，将来换成 SDL 或自己建窗口都不用改这里。
 		std::vector<const char*> RequiredInstanceExtensions;
+		// Win32 窗口句柄（HWND），用于创建 VkSurfaceKHR。
+		// 由 Application 从 Window 取得后填入。
+		// 传 nullptr = 离屏模式，不创建 surface，也不要求 present 队列。
+		void* NativeWindowHandle = nullptr;
+
 
 	};
 	explicit VulkanContext(const ContextSpec& spec);
@@ -103,8 +121,12 @@ public:
 	VkPhysicalDevice	GetPhysicalDevice() const { return m_PhysicalDevice; }
 	VkDevice			GetDevice()			const { return m_Device; }
     VkQueue				GetGraphicsQueue()	const { return m_GraphicsQueue; }
+	VkQueue				GetPresentQueue()	const { return m_PresentQueue; }
+	VkSurfaceKHR GetSurface() const { return m_Surface; }
 	const VkPhysicalDeviceProperties& GetDeviceProperties() const { return m_DeviceProperties; }
 	const QueueFamilyIndices& GetQueueFamilies() const { return m_QueueFamilies; }
+	uint32_t GetGraphicsFamily()  const { return m_QueueFamilies.GraphicsFamily.value_or(UINT32_MAX); }
+	uint32_t GetPresentFamily()  const { return m_QueueFamilies.PresentFamily.value_or(UINT32_MAX); }
 
 	//打印函数
 	void PrintDeviceInfo() const;
@@ -112,11 +134,12 @@ public:
 private:
 	//------初始化函数 顺序很重要---------
 	void CreateInstance();
+	void CreateSurface();
 	void SetupDebugMessenger();  //依赖CreateInstance
 	void PickPhysicalDevice();	//依赖CreateInstance
 	void CreateLogicalDevice(); //依赖PickPhysicalDevice
 	//-------查询helpers------------------
-	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) const;
+	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device,VkSurfaceKHR surface) const;
 	bool               IsDeviceSuitable(VkPhysicalDevice device) const;
 	int                RateDeviceSuitability(VkPhysicalDevice device) const;
 	// 必须在 instance 和 device 层重复的两件事，封装成静态方法避免写错
@@ -135,8 +158,9 @@ private:
 	VkDebugUtilsMessengerEXT	m_DebugMessenger = VK_NULL_HANDLE;
 	VkPhysicalDevice			m_PhysicalDevice = VK_NULL_HANDLE;
 	VkDevice					m_Device = VK_NULL_HANDLE;
+	VkSurfaceKHR                m_Surface = VK_NULL_HANDLE;
 	VkQueue						m_GraphicsQueue = VK_NULL_HANDLE;
-
+	VkQueue                     m_PresentQueue = VK_NULL_HANDLE;
 	// GPU 的只读快照（名字、厂商、驱动版本、各项上限）。
     // 缓存下来而不是每次查询：后续创建 Buffer / Image 时要反复读它。
 	VkPhysicalDeviceProperties	m_DeviceProperties{};

@@ -1,10 +1,11 @@
 #include "VkBackend/VulkanContext.h"
+#include <vulkan/vulkan_win32.h>
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
 #include <string>
 
-namespace VKR
+namespace 
 {
     // 标准的 Khronos 校验层。SDK 安装后自带。
     // 它是"壳"，内部把历史上各家厂商的调试层
@@ -75,6 +76,7 @@ VulkanContext::VulkanContext(const ContextSpec& spec):m_Spec(spec)
 {
     //按照顺序执行初始化
     CreateInstance();
+    CreateSurface();
     SetupDebugMessenger();
     PickPhysicalDevice();
     CreateLogicalDevice();
@@ -97,9 +99,15 @@ VulkanContext::~VulkanContext()
     {
         vkDestroyDevice(m_Device, nullptr);
     }
+    if (m_Surface != VK_NULL_HANDLE)
+    {
+        vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
+        m_Surface = VK_NULL_HANDLE;
+    }
+
     if (m_DebugMessenger != VK_NULL_HANDLE)
     {
-        VKR::DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
+        DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
     }
     if (m_Instance != VK_NULL_HANDLE)
     {
@@ -121,6 +129,7 @@ void VulkanContext::PrintDeviceInfo() const
         : m_DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU ? "integrated GPU"
         : m_DeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU ? "software CPU" : "other");
     std::printf("[Vulkan] Graphics queue : family %u\n", m_QueueFamilies.GraphicsFamily.value_or(UINT32_MAX));
+    std::printf("[Vulkan] Present queue  : family %u\n", GetPresentFamily());
 }
 // ===========================================================================
 //  1. Instance —— "本程序连接到了 Vulkan 运行库"
@@ -136,7 +145,7 @@ bool VulkanContext::CheckValidationLayerSupport()
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
     for (const VkLayerProperties& layerProperties : availableLayers)
     {
-        if (std::strcmp(layerProperties.layerName, VKR::k_ValidationLayerName) == 0)
+        if (std::strcmp(layerProperties.layerName, k_ValidationLayerName) == 0)
         {
             return true;
         }
@@ -168,7 +177,7 @@ void VulkanContext::CreateInstance()
 {
     if (m_Spec.EnableValidationLayers && !CheckValidationLayerSupport()) {
         throw std::runtime_error("[Vulkan] validation layer requested but not available: "
-            + std::string(VKR::k_ValidationLayerName));
+            + std::string(k_ValidationLayerName));
     }
     // ---- applicationInfo：告诉驱动"我是谁、我要哪个版本的 Vulkan" --------
     VkApplicationInfo appInfo{};
@@ -223,15 +232,40 @@ void VulkanContext::CreateInstance()
     debugCreateInfo.pUserData = nullptr;
     if (m_Spec.EnableValidationLayers)
     {
-        const char* const layers[] = { VKR::k_ValidationLayerName };
+        const char* const layers[] = { k_ValidationLayerName };
         instanceCreateInfo.enabledLayerCount = 1;
         instanceCreateInfo.ppEnabledLayerNames = layers;
         instanceCreateInfo.pNext = &debugCreateInfo;
     }
 
-    VKR::ThrowOnFailed(vkCreateInstance(&instanceCreateInfo, nullptr, &m_Instance),
+    ThrowOnFailed(vkCreateInstance(&instanceCreateInfo, nullptr, &m_Instance),
         "vkCreateInstance");
 
+}
+
+void VulkanContext::CreateSurface()
+{
+    if (m_Spec.NativeWindowHandle == nullptr)
+    {
+        //离屏模式：没有窗口可以呈现 不要求present队列
+        m_QueueFamilies.RequiresPresent = false;
+        return;
+    }
+    // 【为什么用 VK_KHR_win32_surface 而不是 glfwCreateWindowSurface】
+    //   GLFW 那个函数需要 GLFWwindow*，会逼得 VkBackend 层依赖 GLFW ——
+    //   违反"VkBackend 不碰窗口库"的铁律。
+    //   改用原生 Win32 surface：这里只需要 HWND，由 Application 从
+    //   Window 取出后经 ContextSpec 传进来。依赖方向保持干净。
+    //
+    // 【hwnd + hinstance】Win32 surface 的两个必要参数。
+    //   hinstance 传当前模块句柄即可（GetModuleHandle(nullptr)），
+    //   Vulkan 只用它做内部标识，不用于创建窗口。
+    VkWin32SurfaceCreateInfoKHR surfaceInfo{};
+    surfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    surfaceInfo.hwnd = reinterpret_cast<HWND>(m_Spec.NativeWindowHandle);
+    surfaceInfo.hinstance = GetModuleHandleW(nullptr);
+    ThrowOnFailed(vkCreateWin32SurfaceKHR(m_Instance, &surfaceInfo, nullptr, &m_Surface),"vkCreateWin32SurfaceKHR");
+    m_QueueFamilies.RequiresPresent = true;
 }
 
 void VulkanContext::SetupDebugMessenger()
@@ -249,7 +283,7 @@ void VulkanContext::SetupDebugMessenger()
         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     createInfo.pfnUserCallback = DebugCallback;
     createInfo.pUserData = nullptr;
-    VKR::ThrowOnFailed(VKR::CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger),
+    ThrowOnFailed(CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger),
         "vkCreateDebugUtilsMessengerEXT");
 
 }
@@ -259,9 +293,10 @@ void VulkanContext::SetupDebugMessenger()
 //  2. PhysicalDevice —— 一台真实的 GPU，只能【只读查询】
 // ===========================================================================
 
-QueueFamilyIndices VulkanContext::FindQueueFamilies(VkPhysicalDevice device) const
+QueueFamilyIndices VulkanContext::FindQueueFamilies(VkPhysicalDevice device,VkSurfaceKHR surface) const
 {
     QueueFamilyIndices indices;
+    indices.RequiresPresent = (surface != VK_NULL_HANDLE);
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device,&queueFamilyCount, nullptr);
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
@@ -272,9 +307,22 @@ QueueFamilyIndices VulkanContext::FindQueueFamilies(VkPhysicalDevice device) con
         if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
         {
             indices.GraphicsFamily = i;
+        }
+        // present 支持是【按 surface 问】的，不是设备的固有属性：
+        // 同一个队列族可能对某个 surface 能呈现、对另一个不能。
+        if (surface != VK_NULL_HANDLE)
+        {
+            VkBool32 canPresent = VK_FALSE;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &canPresent);
+            if(canPresent == VK_TRUE)
+            {
+                indices.PresentFamily = i;
+            }
+        }
+        if (indices.IsComplete())
+        {
             break;
         }
-
     }
     return indices;
 }
@@ -295,8 +343,32 @@ bool VulkanContext::IsDeviceSuitable(VkPhysicalDevice device) const
     {
         return false;
     }
+    // ---- 查询 1.3 特性支持情况 -------------------------------------------
+    //
+    //  【为什么要单独查】apiVersion >= 1.3 只说明"驱动实现了 1.3 的函数"，
+    //  不代表"这个特定特性被硬件支持"。两者是独立的两层：
+    //    版本  = 有哪些 API 可以调
+    //    特性  = 硬件能不能真的做这件事
+    //
+    //  查询需要两层结构：Features2 是外壳，pNext 挂具体版本的结构。
+    //  这是 Vulkan 1.1 之后所有特性查询的统一模式。
+    VkPhysicalDeviceVulkan13Features supported13{};
+    supported13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
 
-    return FindQueueFamilies(device).IsComplete();
+    VkPhysicalDeviceFeatures2 features2{};
+    features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    features2.pNext = &supported13;
+
+    vkGetPhysicalDeviceFeatures2(device, &features2);
+
+    // 整个渲染管线都建立在 Dynamic Rendering 上，硬件不支持就没法跑
+    if (supported13.dynamicRendering != VK_TRUE)
+    {
+        return false;
+    }
+
+
+    return FindQueueFamilies(device,m_Surface).IsComplete();
 
 }
 
@@ -357,7 +429,7 @@ void VulkanContext::PickPhysicalDevice()
     }
 
     m_PhysicalDevice = bestDevice;
-    m_QueueFamilies = FindQueueFamilies(m_PhysicalDevice);
+    m_QueueFamilies = FindQueueFamilies(m_PhysicalDevice,m_Surface);
 
     // 顺手缓存只读属性。后续创建 Buffer / Image 时要反复读它
     //（对齐要求、支持哪些格式...），不想每次都来一次枚举。
@@ -388,26 +460,46 @@ void VulkanContext::CreateLogicalDevice()
     // 【priority 是必须的，不能传 nullptr】它决定同族多条队列间的调度权重。
     //   本阶段只申请 1 条，填 1.0 即可。
     QueueFamilyIndices indices = m_QueueFamilies;
-    float queuePriority = 1.0f;
-    VkDeviceQueueCreateInfo queueCreateInfo{};
-    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = indices.GraphicsFamily.value();
-    queueCreateInfo.queueCount = 1;
-    queueCreateInfo.pQueuePriorities = &queuePriority;
-
+    std::vector<uint32_t> uniqueFamilies;
+    uniqueFamilies.push_back(indices.GraphicsFamily.value());
+    if (indices.PresentFamily.has_value() && indices.PresentFamily.value() != indices.GraphicsFamily.value())
+    {
+        uniqueFamilies.push_back(indices.PresentFamily.value());
+    }
+    const float queuePriority = 1.0f;
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    for(uint32_t family:uniqueFamilies)
+    { 
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = family;
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
     // ---- 设备特性 --------------------------------------------------------
    //
    // 现在什么都不启用。geometryShader / tessellation / wideLine 之类
    // 默认是关的 —— 【Vulkan 与 OpenGL 的重大差异】：
    //   OpenGL 里这些功能随时可用，Vulkan 里不在这里显式申请，
    //   后续在 Pipeline 里也用不了，且校验层会直接报错。
-    VkPhysicalDeviceFeatures deviceFeatures{};
+    VkPhysicalDeviceVulkan13Features enabled13{};
+    enabled13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    enabled13.dynamicRendering = VK_TRUE;
+
+    VkPhysicalDeviceFeatures2 features2{};
+    features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    features2.pNext = &enabled13;
+
+
+
     // ---- 创建 ------------------------------------------------------------
     VkDeviceCreateInfo deviceCreateInfo{};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
-    deviceCreateInfo.queueCreateInfoCount = 1;
-    deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+    deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
+    deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+    deviceCreateInfo.pNext = &features2;
+    deviceCreateInfo.pEnabledFeatures = nullptr;
     // 【为什么设备层还要带一次校验层】新规范下 Instance 上启用就够了，
     //   但旧驱动/旧 SDK 会要求两层都列。为了兼容性，两边保持一致。
     std::vector<const char*> deviceExtensions = GetRequiredDeviceExtensions();
@@ -415,18 +507,20 @@ void VulkanContext::CreateLogicalDevice()
     deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
     if (m_Spec.EnableValidationLayers)
     {
-        const char* const layers[] = { VKR::k_ValidationLayerName };
+        const char* const layers[] = { k_ValidationLayerName };
         deviceCreateInfo.enabledLayerCount = 1;
         deviceCreateInfo.ppEnabledLayerNames = layers;
     }
 
-    VKR::ThrowOnFailed(vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, nullptr, &m_Device),
+    ThrowOnFailed(vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, nullptr, &m_Device),
         "vkCreateDevice");
     // ---- 取出队列句柄 ----------------------------------------------------
     //
     // 队列是设备创建时【已经存在】的，这里只是拿到它的句柄。
     // 没有 vkCreateQueue —— 也不能单独销毁队列，它随 Device 一起消失。
     vkGetDeviceQueue(m_Device, indices.GraphicsFamily.value(), 0, &m_GraphicsQueue);
+    const uint32_t presentFamily = indices.PresentFamily.value_or(indices.GraphicsFamily.value());
+    vkGetDeviceQueue(m_Device, presentFamily, 0, &m_PresentQueue);
 }
 
 

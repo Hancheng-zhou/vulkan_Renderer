@@ -1,5 +1,6 @@
 #include "Platform/Window.h"
-
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
 #include <stdexcept>
 
 Window::Window(const WindowProps& props)
@@ -17,9 +18,8 @@ Window::Window(const WindowProps& props)
     // 这正是"只用 GLFW 管窗口、图形 API 走 Vulkan"的开关。
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    // 先禁掉 resize。窗口缩放要重建交换链，是阶段 3 之后的事；
-    // 现在允许它会在拖动窗口时直接崩。
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    //允许resize
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
     m_Window = glfwCreateWindow(static_cast<int>(props.Width),
         static_cast<int>(props.Height),
@@ -70,6 +70,30 @@ bool Window::ShouldClose() const
 void Window::PollEvents()
 {
     glfwPollEvents();
+}
+
+bool Window::RefreshFramebufferSize()
+{
+    int width = 0;
+    int height = 0;
+    glfwGetFramebufferSize(m_Window, &width, &height);
+    if (width != m_Width || height != m_Height)
+    {
+        m_Width = static_cast<uint32_t>(width);
+        m_Height = static_cast<uint32_t>(height);
+        return true;
+    }
+    return false;
+}
+
+void* Window::GetNativeWin32Handle() const
+{
+    void* handle = reinterpret_cast<void*> (glfwGetWin32Window(m_Window));
+    if (handle == nullptr)
+    {
+        throw std::runtime_error("[Window] glfwGetWin32Window returned nullptr");
+    }
+    return handle;
 }
 
 std::vector<const char*> Window::GetRequiredInstanceExtensions() const
