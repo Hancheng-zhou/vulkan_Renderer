@@ -32,6 +32,7 @@ class VulkanAllocator;
 class VulkanSwapchain;
 class VulkanCommandPool;
 struct FrameResources;
+class VulkanPipeline;
 class Application
 {
 public:
@@ -89,8 +90,8 @@ private:
     std::unique_ptr<VulkanAllocator> m_Allocator;
     std::unique_ptr <VulkanSwapchain> m_Swapchain;
     std::unique_ptr<VulkanCommandPool> m_CommandPool;
+    std::unique_ptr<VulkanPipeline> m_Pipeline;
     std::vector<FrameResources> m_Frames;
-
     // ---- 按【交换链图像】索引的 renderFinished 信号量 --------------------
     //
     //  【为什么不能放进 FrameResources（按帧索引）】

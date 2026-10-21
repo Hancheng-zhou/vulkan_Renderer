@@ -7,6 +7,8 @@
 #include "VkBackend/VulkanSwapchain.h"
 #include "VkBackend/VulkanCommandPool.h"
 #include "VkBackend/FrameResources.h"
+#include "VkBackend/VulkanPipeline.h"
+
 #include <cstdio>
 #include <exception>
 #include <vector>
@@ -334,16 +336,24 @@ void Application::Init()
     // ---- 6. 命令池（全局一份，按帧数分配缓冲）----------------------------
     m_CommandPool = std::make_unique<VulkanCommandPool>(m_Context->GetDevice(), m_Context->GetGraphicsFamily(), k_MaxFramesInFlight);
     // ---- 7. 每帧的同步对象 -----------------------------------------------
-   //
-   //  【命令缓冲从这里取】pool 已经按 k_MaxFramesInFlight 分配好了，
-   //    这里只是把句柄填进各自的 FrameResources，并建好配套的
-   //    两个信号量 + 一个围栏。
+    //
+    //  【命令缓冲从这里取】pool 已经按 k_MaxFramesInFlight 分配好了，
+    //    这里只是把句柄填进各自的 FrameResources，并建好配套的
+    //    两个信号量 + 一个围栏。
     m_Frames.resize(k_MaxFramesInFlight);
     for (uint32_t i = 0; i < k_MaxFramesInFlight; i++)
     {
         m_Frames[i].CommandBuffer = m_CommandPool->GetBuffers()[i];
         m_Frames[i].CreateSyncObjects(m_Context->GetDevice());
     }
+    // --------8. 图形管线 --------------------------------------------------
+    VulkanPipeline::CreateInfo pipelineInfo{};
+    pipelineInfo.device = m_Context->GetDevice();
+    pipelineInfo.colorFormat = m_Swapchain->GetFormat();
+    pipelineInfo.vertexSpvPath = "assets/shaders/Triangle.vert.spv";
+    pipelineInfo.fragSpvPath = "assets/shaders/Triangle.frag.spv";
+    m_Pipeline = std::make_unique<VulkanPipeline>(pipelineInfo);
+    // ---------------debug test----------------------------------------------------
     RunAllocatorSelfTest(*m_Allocator);
     RunBufferSelfTest(m_Context->GetDevice(),*m_Allocator);
     m_Running = true;
@@ -389,6 +399,7 @@ void Application::Shutdown()
     m_Frames.clear();
 
     // ---- 3. 按逆序销毁其余资源 -------------------------------------------
+    m_Pipeline.reset();
     m_CommandPool.reset();   // pool 一并回收所有 command buffer
     m_Swapchain.reset();     // imageView + swapchain
     m_Allocator.reset();     // VkDeviceMemory
@@ -557,8 +568,47 @@ void Application::RenderFrame()
 
         vkCmdBeginRendering(cmd, &renderingInfo);
 
-        // 【阶段 4 会在这里插入 vkCmdBindPipeline + vkCmdDraw】
-        //  现在只有一个 Pass 的空壳，所以画面是纯清屏色。
+        // ---- 绑定管线 ----------------------------------------------------
+        //
+        // 【必须在 BeginRendering 之后】管线包含颜色附件格式等状态，
+        //   只有在 rend rendering scope 内绑定才是合法的。
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetHandle());
+        // ---- 设置动态视口与裁剪 -------------------------------------------
+        //
+        // 这两项在管线里声明为 dynamic，必须每帧设置。
+        // 【忘了设的后果】视口是未定义值，三角形可能完全不可见，
+        //   而且校验层只在部分驱动上报错。
+        //
+        // 用 swapchain 的 extent，而不是窗口尺寸 —— 两者在边界情况下可能差一像素，
+        // 用错会有 1px 的边缝或溢出。
+        const VkExtent2D extent = m_Swapchain->GetExtent();
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float>(extent.width);
+        viewport.height = static_cast<float>(extent.height);
+        viewport.minDepth = 0.0f;   // Vulkan 的深度范围是 [0,1]，不是 GL 的 [-1,1]
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+        VkRect2D scissor{};
+        scissor.offset = { 0, 0 };
+        scissor.extent = extent;
+        vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+        // ---- 绘制 --------------------------------------------------------
+        //
+        // 参数：(命令缓冲, 顶点数, 实例数, 起始顶点, 起始实例)
+        // 顶点位置由 gl_VertexID 在着色器里生成，没有顶点缓冲要绑。
+        //
+        // 【必须在 EndRendering 之前】
+        //   vkCmdDraw 是 render pass 内部命令。放到 EndRendering 之后，
+        //   校验层会报 VUID-vkCmdDraw-renderpass（"must be issued inside
+        //   an active render pass"），并且什么都不会画出来。
+        //
+        //   同理，vkCmdBindPipeline / vkCmdSetViewport / vkCmdSetScissor
+        //   也全都必须夹在 BeginRendering 和 EndRendering 之间。
+        vkCmdDraw(cmd, 3, 1, 0, 0);
 
         vkCmdEndRendering(cmd);
 
