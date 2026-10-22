@@ -1,4 +1,4 @@
-#include "Application.h"
+ï»¿#include "Application.h"
 
 #include "Platform/Window.h"
 #include "VkBackend/VulkanContext.h"
@@ -9,10 +9,15 @@
 #include "VkBackend/FrameResources.h"
 #include "VkBackend/VulkanPipeline.h"
 
+#include "Core/Vertex.h"
+#include "Renderer/Mesh.h"
+
 #include <cstdio>
 #include <exception>
 #include <vector>
 #include <stdexcept>
+#include <array>
+#include <cstddef>
 
 #include <glm/glm.hpp>
 #include <glm/vec4.hpp>
@@ -31,18 +36,18 @@ namespace {
     }
 
     // -----------------------------------------------------------------------
-    //  ·ÖÅäÆ÷×Ô²â£ºĞ´½øÈ¥ -> ¶Á³öÀ´ -> Öğ×Ö½Ú±È¶Ô¡£
+    //  åˆ†é…å™¨è‡ªæµ‹ï¼šå†™è¿›å» -> è¯»å‡ºæ¥ -> é€å­—èŠ‚æ¯”å¯¹ã€‚
     //
-    //  Éè¼Æ³É"¹ÊÒâÓÃ¶àÖÖ´óĞ¡/¶ÔÆë/ÊÍ·ÅË³Ğò"£¬¸²¸ÇÈıÀà×îÈİÒ×´íµÄµØ·½£º
-    //    1. ¶ÔÆë£ºalignment ²»ÊÇ 2 µÄÃİ±¶ÊıÊ± offset Ëã´í
-    //    2. ËéÆ¬£º·ÖÅä-ÊÍ·Å½»´íºó£¬ºÏ²¢Ê§°ÜµÄ free list »á¾Ü¾ø±¾¿ÉÂú×ãµÄÇëÇó
-    //    3. Ô½½ç£ºoffset + size ³¬¹ı¿éÎ²
+    //  è®¾è®¡æˆ"æ•…æ„ç”¨å¤šç§å¤§å°/å¯¹é½/é‡Šæ”¾é¡ºåº"ï¼Œè¦†ç›–ä¸‰ç±»æœ€å®¹æ˜“é”™çš„åœ°æ–¹ï¼š
+    //    1. å¯¹é½ï¼šalignment ä¸æ˜¯ 2 çš„å¹‚å€æ•°æ—¶ offset ç®—é”™
+    //    2. ç¢ç‰‡ï¼šåˆ†é…-é‡Šæ”¾äº¤é”™åï¼Œåˆå¹¶å¤±è´¥çš„ free list ä¼šæ‹’ç»æœ¬å¯æ»¡è¶³çš„è¯·æ±‚
+    //    3. è¶Šç•Œï¼šoffset + size è¶…è¿‡å—å°¾
     // -----------------------------------------------------------------------
     void RunAllocatorSelfTest(VulkanAllocator& allocator)
     {
         constexpr VkBufferUsageFlags k_TestUsage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
-        // ---- ²âÊÔ 1£ºµ¥¿é buffer µÄĞ´¶ÁÍù·µ -----------------------------
+        // ---- æµ‹è¯• 1ï¼šå•å— buffer çš„å†™è¯»å¾€è¿” -----------------------------
         constexpr VkDeviceSize kSize = 1024;
         constexpr VkDeviceSize kAlign = 256;
 
@@ -54,15 +59,15 @@ namespace {
             throw std::runtime_error("[self-test] allocation invalid");
         }
 
-        // ¶ÔÆë¼ì²é£ºÕâÊÇ×îÖµµÃµ¥¶ÀÑéµÄÒ»Ìõ¡£offset ²»Âú×ã alignment Ê±
-        // ºóĞø bind ¿ÉÄÜ³É¹¦µ«ĞĞÎªÎ´¶¨Òå ¡ª¡ª ÄÇÖÖ bug ¼«ÄÑ²é¡£
+        // å¯¹é½æ£€æŸ¥ï¼šè¿™æ˜¯æœ€å€¼å¾—å•ç‹¬éªŒçš„ä¸€æ¡ã€‚offset ä¸æ»¡è¶³ alignment æ—¶
+        // åç»­ bind å¯èƒ½æˆåŠŸä½†è¡Œä¸ºæœªå®šä¹‰ â€”â€” é‚£ç§ bug æéš¾æŸ¥ã€‚
         if (a.offset % kAlign != 0)
         {
             throw std::runtime_error("[self-test] offset not aligned to requested alignment");
         }
 
-        // Ğ´ÈëÒÑÖªÄ£Ê½£ºµÚ i ×Ö½ÚÌî i & 0xFF¡£ÓÃÎ»ÖÃÏà¹ØµÄÖµ¶ø²»ÊÇÈ« 0£¬
-        // ·ñÔò"Ã»¿½½øÈ¥"ºÍ"¿½½øÈ¥È«ÊÇ 0"Á½ÖÖÇé¿öÊä³öÒ»Ñù£¬²â²»³öÎÊÌâ¡£
+        // å†™å…¥å·²çŸ¥æ¨¡å¼ï¼šç¬¬ i å­—èŠ‚å¡« i & 0xFFã€‚ç”¨ä½ç½®ç›¸å…³çš„å€¼è€Œä¸æ˜¯å…¨ 0ï¼Œ
+        // å¦åˆ™"æ²¡æ‹·è¿›å»"å’Œ"æ‹·è¿›å»å…¨æ˜¯ 0"ä¸¤ç§æƒ…å†µè¾“å‡ºä¸€æ ·ï¼Œæµ‹ä¸å‡ºé—®é¢˜ã€‚
         auto* bytes = static_cast<uint8_t*>(a.mapped);
         for (VkDeviceSize i = 0; i < kSize; ++i)
         {
@@ -81,11 +86,11 @@ namespace {
             static_cast<unsigned long long>(a.offset),
             static_cast<unsigned long long>(a.size));
 
-        // ---- ²âÊÔ 2£º½»´í·ÖÅä/ÊÍ·Å£¬ÑéÖ¤ free list ºÏ²¢ -------------------
+        // ---- æµ‹è¯• 2ï¼šäº¤é”™åˆ†é…/é‡Šæ”¾ï¼ŒéªŒè¯ free list åˆå¹¶ -------------------
         //
-        //  ÊÖ·¨£ºÏÈÒªÈı¿é£¬ÊÍ·ÅÊ×Î²Á½¿é£¬ÔÙÒªÒ»¿é¡¾¿çÔ½Ô­À´Á½¸ö¿Õ¶´¡¿µÄ´ó¿é¡£
-        //  Èç¹û Coalesce Ã»°ÑÏàÁÚ¿Õ¶´ºÏ²¢£¬Õâ´Î·ÖÅä»áÊ§°Ü ¡ª¡ª ¶øÈı¿éµÄ×Ü¿ÕÏĞ
-        //  Ã÷Ã÷×ã¹»¡£Õâ¾ÍÊÇ"ÄÚ´æ¹»ÓÃÈ´·ÖÅäÊ§°Ü"µÄµäĞÍÖ¢×´¡£
+        //  æ‰‹æ³•ï¼šå…ˆè¦ä¸‰å—ï¼Œé‡Šæ”¾é¦–å°¾ä¸¤å—ï¼Œå†è¦ä¸€å—ã€è·¨è¶ŠåŸæ¥ä¸¤ä¸ªç©ºæ´ã€‘çš„å¤§å—ã€‚
+        //  å¦‚æœ Coalesce æ²¡æŠŠç›¸é‚»ç©ºæ´åˆå¹¶ï¼Œè¿™æ¬¡åˆ†é…ä¼šå¤±è´¥ â€”â€” è€Œä¸‰å—çš„æ€»ç©ºé—²
+        //  æ˜æ˜è¶³å¤Ÿã€‚è¿™å°±æ˜¯"å†…å­˜å¤Ÿç”¨å´åˆ†é…å¤±è´¥"çš„å…¸å‹ç—‡çŠ¶ã€‚
         VulkanAllocator::Allocation b1 = allocator.Allocate(
              512, 16, 0xFFFFFFFF, VulkanAllocator::Usage::CPUToGPU);
         VulkanAllocator::Allocation b2 = allocator.Allocate(
@@ -93,10 +98,10 @@ namespace {
         VulkanAllocator::Allocation b3 = allocator.Allocate(
              512, 16, 0xFFFFFFFF, VulkanAllocator::Usage::CPUToGPU);
 
-        allocator.Free(a);    // a ÊÇ 1024£¬ÔÚ×îÇ°Ãæ
-        allocator.Free(b3);   // b3 ÊÇ×îºóÒ»¿é
+        allocator.Free(a);    // a æ˜¯ 1024ï¼Œåœ¨æœ€å‰é¢
+        allocator.Free(b3);   // b3 æ˜¯æœ€åä¸€å—
 
-        // ÕâÒ»´ÎÒªÄÜ³Ôµô a µÄ¿Õ¶´ + b2/b3 Ö®¼ä±»ºÏ²¢³öÀ´µÄ¿Õ¼ä
+        // è¿™ä¸€æ¬¡è¦èƒ½åƒæ‰ a çš„ç©ºæ´ + b2/b3 ä¹‹é—´è¢«åˆå¹¶å‡ºæ¥çš„ç©ºé—´
         VulkanAllocator::Allocation big = allocator.Allocate(
             1024, 16, 0xFFFFFFFF, VulkanAllocator::Usage::CPUToGPU);
 
@@ -118,12 +123,12 @@ namespace {
             static_cast<unsigned long long>(allocator.GetBlockCount()));
     }
     // -----------------------------------------------------------------------
-    //  Buffer ×Ô²â£ºÑéÖ¤"½¨ buffer -> °óÏÔ´æ -> ÉÏ´« -> ¶Á»Ø -> Ïú»Ù"±Õ»·¡£
+    //  Buffer è‡ªæµ‹ï¼šéªŒè¯"å»º buffer -> ç»‘æ˜¾å­˜ -> ä¸Šä¼  -> è¯»å› -> é”€æ¯"é—­ç¯ã€‚
     //
-    //  Èı¸ö¼ì²éµã·Ö±ğ¶ÔÓ¦ÈıÀàÖ»ÓĞÅÜÆğÀ´²Å±©Â¶µÄÎÊÌâ£º
-    //    1. ÉÏ´«/¶Á»Ø  ¡ª¡ª vkBindBufferMemory µÄ offset ÊÇ·ñÕıÈ·
-    //    2. Ô½½ç¾Ü¾ø   ¡ª¡ª Upload µÄ±ß½ç¼ì²éÊÇ»îµÄ£¬²»ÊÇËÀ´úÂë
-    //    3. GpuOnly ¾Ü¾ø ¡ª¡ª ·ÀÖ¹½«À´Îó°Ñ Upload ÓÃÔÚ CPU ²»¿É¼ûµÄÄÚ´æÉÏ
+    //  ä¸‰ä¸ªæ£€æŸ¥ç‚¹åˆ†åˆ«å¯¹åº”ä¸‰ç±»åªæœ‰è·‘èµ·æ¥æ‰æš´éœ²çš„é—®é¢˜ï¼š
+    //    1. ä¸Šä¼ /è¯»å›  â€”â€” vkBindBufferMemory çš„ offset æ˜¯å¦æ­£ç¡®
+    //    2. è¶Šç•Œæ‹’ç»   â€”â€” Upload çš„è¾¹ç•Œæ£€æŸ¥æ˜¯æ´»çš„ï¼Œä¸æ˜¯æ­»ä»£ç 
+    //    3. GpuOnly æ‹’ç» â€”â€” é˜²æ­¢å°†æ¥è¯¯æŠŠ Upload ç”¨åœ¨ CPU ä¸å¯è§çš„å†…å­˜ä¸Š
     // -----------------------------------------------------------------------
     void RunBufferSelfTest(VkDevice device, VulkanAllocator& allocator)
     {
@@ -133,11 +138,11 @@ namespace {
         info.size = kBufferSize;
         info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         info.memoryUsage = VulkanAllocator::Usage::CPUToGPU;
-        info.alignment = 256;   // ¹ÊÒâ´óÓÚÄ¬ÈÏÒªÇó£¬ÑéÖ¤ alignment È¡ max µÄÂß¼­
+        info.alignment = 256;   // æ•…æ„å¤§äºé»˜è®¤è¦æ±‚ï¼ŒéªŒè¯ alignment å– max çš„é€»è¾‘
 
         VulkanBuffer buffer(device, allocator, info);
 
-        // ---- ¼ì²é 1£ºĞ´Èë -> ¶Á»Ø -----------------------------------------
+        // ---- æ£€æŸ¥ 1ï¼šå†™å…¥ -> è¯»å› -----------------------------------------
         const uint8_t pattern[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
         buffer.Upload(pattern, sizeof(pattern), 0);
 
@@ -155,7 +160,7 @@ namespace {
             }
         }
 
-        // ¶ÔÆëÒ²Ë³´øÑéÒ»´Î£ºbind Ê±µÄ offset ±ØĞëÂú×ã alignment
+        // å¯¹é½ä¹Ÿé¡ºå¸¦éªŒä¸€æ¬¡ï¼šbind æ—¶çš„ offset å¿…é¡»æ»¡è¶³ alignment
         if (reinterpret_cast<std::uintptr_t>(mapped) % 256 != 0)
         {
             throw std::runtime_error("[self-test] buffer mapping not 256-byte aligned");
@@ -164,10 +169,10 @@ namespace {
         std::printf("[self-test] buffer upload   : OK (size=%llu)\n",
             static_cast<unsigned long long>(buffer.GetSize()));
 
-        // ---- ¼ì²é 2£ºÔ½½ç±ØĞëÅ× -------------------------------------------
+        // ---- æ£€æŸ¥ 2ï¼šè¶Šç•Œå¿…é¡»æŠ› -------------------------------------------
         //
-        //  ÓÃ±êÖ¾Î»¶ø²»ÊÇ try-catch ÀïÖ±½ÓÅ×£º·ñÔò»á°Ñ×Ô¼º¸ÕÅ×³öµÄÒì³£
-        //  µ±³É"¼ì²éÍ¨¹ı"£¬²âÊÔÓÀÔ¶ÂÌ¡£
+        //  ç”¨æ ‡å¿—ä½è€Œä¸æ˜¯ try-catch é‡Œç›´æ¥æŠ›ï¼šå¦åˆ™ä¼šæŠŠè‡ªå·±åˆšæŠ›å‡ºçš„å¼‚å¸¸
+        //  å½“æˆ"æ£€æŸ¥é€šè¿‡"ï¼Œæµ‹è¯•æ°¸è¿œç»¿ã€‚
         bool rejectedOutOfRange = false;
         try
         {
@@ -183,10 +188,10 @@ namespace {
             throw std::runtime_error("[self-test] Upload did not reject out-of-range write");
         }
 
-        // ---- ¼ì²é 3£ºGpuOnly buffer µÄ Upload ±ØĞëÅ× -----------------------
+        // ---- æ£€æŸ¥ 3ï¼šGpuOnly buffer çš„ Upload å¿…é¡»æŠ› -----------------------
         //
-        //  DEVICE_LOCAL ÄÚ´æ CPU Åö²»µ½¡£Õâ¸ö¼ì²é·ÀµÄÊÇ"½«À´ÓĞÈË°Ñ
-        //  Upload ÓÃÔÚ¶¥µã buffer ÉÏ"¡ª¡ªÄÇ»áĞ´µ½Ò°Ö¸Õë£¬ÇÒ²»Ò»¶¨Á¢¿Ì±À¡£
+        //  DEVICE_LOCAL å†…å­˜ CPU ç¢°ä¸åˆ°ã€‚è¿™ä¸ªæ£€æŸ¥é˜²çš„æ˜¯"å°†æ¥æœ‰äººæŠŠ
+        //  Upload ç”¨åœ¨é¡¶ç‚¹ buffer ä¸Š"â€”â€”é‚£ä¼šå†™åˆ°é‡æŒ‡é’ˆï¼Œä¸”ä¸ä¸€å®šç«‹åˆ»å´©ã€‚
         VulkanBuffer::CreateInfo gpuInfo{};
         gpuInfo.size = 512;
         gpuInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -220,18 +225,18 @@ namespace {
 
 }
 Application::Application()
-    : m_Window(Window::WindowProps{})   // ÓÃ WindowProps µÄÈ«²¿Ä¬ÈÏÖµ
+    : m_Window(Window::WindowProps{})   // ç”¨ WindowProps çš„å…¨éƒ¨é»˜è®¤å€¼
 {
-    // ¹¹Ôìº¯ÊıÖ»½¨´°¿Ú¡£
-    // Vulkan ×ÊÔ´µÄ´´½¨·ÅÔÚ Init()£º´°¿ÚÊÇ Vulkan µÄÇ°ÖÃÌõ¼ş£¬
-    // °ÑË³ĞòÌ¯¿ª±È²ØÔÚ³õÊ¼»¯ÁĞ±íÀï¸üÈİÒ×¶Á¶®¡£
+    // æ„é€ å‡½æ•°åªå»ºçª—å£ã€‚
+    // Vulkan èµ„æºçš„åˆ›å»ºæ”¾åœ¨ Init()ï¼šçª—å£æ˜¯ Vulkan çš„å‰ç½®æ¡ä»¶ï¼Œ
+    // æŠŠé¡ºåºæ‘Šå¼€æ¯”è—åœ¨åˆå§‹åŒ–åˆ—è¡¨é‡Œæ›´å®¹æ˜“è¯»æ‡‚ã€‚
 }
 
 Application::~Application()
 {
-    // ¶µµ×£ºÕı³£Â·¾¶ÔÚ Run() Ä©Î²ÒÑ¾­µ÷¹ıÒ»´Î Shutdown()¡£
-    // ÕâÀïÔÙµ÷Ò»´ÎÊÇ·À"Run() Ã»±»µ÷ÓÃ¾ÍÖ±½ÓÎö¹¹"µÄÇé¿ö¡£
-    // Shutdown() ÊÇÃİµÈµÄ£¬ÖØ¸´µ÷ÓÃ°²È«¡£
+    // å…œåº•ï¼šæ­£å¸¸è·¯å¾„åœ¨ Run() æœ«å°¾å·²ç»è°ƒè¿‡ä¸€æ¬¡ Shutdown()ã€‚
+    // è¿™é‡Œå†è°ƒä¸€æ¬¡æ˜¯é˜²"Run() æ²¡è¢«è°ƒç”¨å°±ç›´æ¥ææ„"çš„æƒ…å†µã€‚
+    // Shutdown() æ˜¯å¹‚ç­‰çš„ï¼Œé‡å¤è°ƒç”¨å®‰å…¨ã€‚
     Shutdown();
 }
 
@@ -245,17 +250,17 @@ int Application::Run()
     {
         std::fprintf(stderr, "[fatal] %s\n", e.what());
 
-        // ¡¾Init Ê§°ÜÒ²ÒªÇåÀí¡¿Init ¿ÉÄÜ½¨µ½Ò»°ë²ÅÅ×Òì³£
-        // £¨±ÈÈç Window ºÃÁË¡¢VulkanContext Ê§°Ü£©¡£
-        // ²»ÔÚÕâÀïÊÕÎ²£¬ÄÇ°ë¸ö Context ¾ÍĞ¹Â©µ½½ø³Ì½áÊø¡£
+        // ã€Init å¤±è´¥ä¹Ÿè¦æ¸…ç†ã€‘Init å¯èƒ½å»ºåˆ°ä¸€åŠæ‰æŠ›å¼‚å¸¸
+        // ï¼ˆæ¯”å¦‚ Window å¥½äº†ã€VulkanContext å¤±è´¥ï¼‰ã€‚
+        // ä¸åœ¨è¿™é‡Œæ”¶å°¾ï¼Œé‚£åŠä¸ª Context å°±æ³„æ¼åˆ°è¿›ç¨‹ç»“æŸã€‚
         Shutdown();
         return 1;
     }
 
-    // ---- Ö÷Ñ­»· ----------------------------------------------------------
+    // ---- ä¸»å¾ªç¯ ----------------------------------------------------------
     //
-    // µ±Ç°½×¶ÎÊÇ¿Õ×ª£ºÖ»ÂÖÑ¯ÊÂ¼ş¡¢¼ì²é¹Ø±ÕÇëÇó¡£
-    // ºóĞø½×¶Î»áÔÚÕâÀïÒÀ´ÎÌîÈë ÊäÈë -> ¸üĞÂÊÀ½ç -> äÖÈ¾ -> Ìá½»¡£
+    // å½“å‰é˜¶æ®µæ˜¯ç©ºè½¬ï¼šåªè½®è¯¢äº‹ä»¶ã€æ£€æŸ¥å…³é—­è¯·æ±‚ã€‚
+    // åç»­é˜¶æ®µä¼šåœ¨è¿™é‡Œä¾æ¬¡å¡«å…¥ è¾“å…¥ -> æ›´æ–°ä¸–ç•Œ -> æ¸²æŸ“ -> æäº¤ã€‚
     while (m_Running)
     {
         m_Window.PollEvents();
@@ -269,8 +274,8 @@ int Application::Run()
         {
             RecreateSwapchain();
 
-            // ÖØ½¨ºóÖ®Ç°¿ÉÄÜÒÑ acquire µÄ imageIndex ÒÑÊ§Ğ§£¬
-            // ÕâÒ»Ö¡²»ÔÙÂ¼ÃüÁî£¬ÏÂÒ»Ö¡´ÓĞÂ½»»»Á´ÖØĞÂ¿ªÊ¼¡£
+            // é‡å»ºåä¹‹å‰å¯èƒ½å·² acquire çš„ imageIndex å·²å¤±æ•ˆï¼Œ
+            // è¿™ä¸€å¸§ä¸å†å½•å‘½ä»¤ï¼Œä¸‹ä¸€å¸§ä»æ–°äº¤æ¢é“¾é‡æ–°å¼€å§‹ã€‚
             continue;
         }
         RenderFrame();
@@ -282,13 +287,13 @@ int Application::Run()
 
 void Application::Init()
 {
-    // ---- 1. Ïò GLFW ÒªÊµÀıÀ©Õ¹ ------------------------------------------
+    // ---- 1. å‘ GLFW è¦å®ä¾‹æ‰©å±• ------------------------------------------
     //
-    // ±ØĞëÔÚ glfwTerminate Ö®Ç°µ÷ÓÃ ¡ª¡ª GetRequiredInstanceExtensions
-    // ·µ»ØµÄÖ¸ÕëÓÉ GLFW ³ÖÓĞ¡£µ±Ç°Ê±»ú£¨Window ÒÑ½¨¡¢ÉĞÎ´Ïú»Ù£©Âú×ã¡£
+    // å¿…é¡»åœ¨ glfwTerminate ä¹‹å‰è°ƒç”¨ â€”â€” GetRequiredInstanceExtensions
+    // è¿”å›çš„æŒ‡é’ˆç”± GLFW æŒæœ‰ã€‚å½“å‰æ—¶æœºï¼ˆWindow å·²å»ºã€å°šæœªé”€æ¯ï¼‰æ»¡è¶³ã€‚
     std::vector<const char*> instanceExtensions = m_Window.GetRequiredInstanceExtensions();
 
-    // ---- 2. ´´½¨ Vulkan ÉÏÏÂÎÄ -------------------------------------------
+    // ---- 2. åˆ›å»º Vulkan ä¸Šä¸‹æ–‡ -------------------------------------------
     VulkanContext::ContextSpec spec;
     spec.ApplicationName = "vulkan_Renderer";
     spec.EnableValidationLayers = true;
@@ -296,28 +301,28 @@ void Application::Init()
     spec.NativeWindowHandle = m_Window.GetNativeWin32Handle();
     m_Context = std::make_unique<VulkanContext>(spec);
 
-    // ÑéÊÕÅĞ¾İ 1£ºÈ·ÈÏ³ÌĞòÅÜÔÚÄÄÕÅ¿¨ÉÏ¡£
-    // Ë«ÏÔ¿¨±Ê¼Ç±¾ºÜÈİÒ×ÎóÑ¡¼¯³ÉÏÔ¿¨£¬ÕâĞĞÊä³öÊÇµÚÒ»µÀ¼ì²é¡£
+    // éªŒæ”¶åˆ¤æ® 1ï¼šç¡®è®¤ç¨‹åºè·‘åœ¨å“ªå¼ å¡ä¸Šã€‚
+    // åŒæ˜¾å¡ç¬”è®°æœ¬å¾ˆå®¹æ˜“è¯¯é€‰é›†æˆæ˜¾å¡ï¼Œè¿™è¡Œè¾“å‡ºæ˜¯ç¬¬ä¸€é“æ£€æŸ¥ã€‚
     m_Context->PrintDeviceInfo();
 
-    // ---- 3. ÑéÊÕÅĞ¾İ 2£ºglm ¿ÉÓÃ ----------------------------------------
+    // ---- 3. éªŒæ”¶åˆ¤æ® 2ï¼šglm å¯ç”¨ ----------------------------------------
     //
-    //  ZHC Àï glm ÊÇÊıÑ§»ù´¡£¬ÏÈÈ·ÈÏËü±»ÕıÈ·Á´½Ó¡£
-    //  ºê GLM_FORCE_DEPTH_ZERO_TO_ONE ÈÃ²Ã¼ô¿Õ¼äÉî¶ÈÂäÔÚ [0,1]£¬
-    //  ÕâÊÇ Vulkan µÄÔ¼¶¨£¨OpenGL ÊÇ [-1,1]£©¡£
+    //  ZHC é‡Œ glm æ˜¯æ•°å­¦åŸºç¡€ï¼Œå…ˆç¡®è®¤å®ƒè¢«æ­£ç¡®é“¾æ¥ã€‚
+    //  å® GLM_FORCE_DEPTH_ZERO_TO_ONE è®©è£å‰ªç©ºé—´æ·±åº¦è½åœ¨ [0,1]ï¼Œ
+    //  è¿™æ˜¯ Vulkan çš„çº¦å®šï¼ˆOpenGL æ˜¯ [-1,1]ï¼‰ã€‚
     const glm::mat4 identity(1.0f);
     const glm::vec4 origin(0.0f, 0.0f, 0.0f, 1.0f);
     const glm::vec4 transformed = identity * origin;
 
     std::printf("[glm] mat4 * vec4 -> (%.2f, %.2f, %.2f)\n",
         transformed.x, transformed.y, transformed.z);
-    // ---- 4. ÏÔ´æ·ÖÅäÆ÷×Ô²â ----------------------------------------------
+    // ---- 4. æ˜¾å­˜åˆ†é…å™¨è‡ªæµ‹ ----------------------------------------------
     //
-    //  ¡¾ÎªÊ²Ã´·ÅÔÚÕâÀï¡¿·ÖÅäÆ÷µÄÕıÈ·ĞÔÎŞ·¨¿¿"¿´ÆğÀ´ÄÜÅÜ"ÅĞ¶Ï ¡ª¡ª
-    //  Æ«ÒÆËã´í¡¢¶ÔÆëÂ©µô¡¢free list Ã»ºÏ²¢£¬¶¼»á¾²Ä¬µØÈÃÊı¾İ´íÂÒ¡£
-    //  ËùÒÔÕâÀï×öÒ»´Î"Ğ´½øÈ¥¡¢¶Á³öÀ´¡¢Öğ×Ö½Ú±È"µÄ±Õ»·ÑéÖ¤¡£
+    //  ã€ä¸ºä»€ä¹ˆæ”¾åœ¨è¿™é‡Œã€‘åˆ†é…å™¨çš„æ­£ç¡®æ€§æ— æ³•é "çœ‹èµ·æ¥èƒ½è·‘"åˆ¤æ–­ â€”â€”
+    //  åç§»ç®—é”™ã€å¯¹é½æ¼æ‰ã€free list æ²¡åˆå¹¶ï¼Œéƒ½ä¼šé™é»˜åœ°è®©æ•°æ®é”™ä¹±ã€‚
+    //  æ‰€ä»¥è¿™é‡Œåšä¸€æ¬¡"å†™è¿›å»ã€è¯»å‡ºæ¥ã€é€å­—èŠ‚æ¯”"çš„é—­ç¯éªŒè¯ã€‚
     m_Allocator = std::make_unique<VulkanAllocator>(m_Context->GetDevice(), m_Context->GetPhysicalDevice());
-    // ---- 5. ½»»»Á´ -------------------------------------------------------
+    // ---- 5. äº¤æ¢é“¾ -------------------------------------------------------
     VulkanSwapchain::CreateInfo swapchainInfo{};
     swapchainInfo.PhysicalDevice = m_Context->GetPhysicalDevice();
     swapchainInfo.Device = m_Context->GetDevice();
@@ -330,28 +335,80 @@ void Application::Init()
     m_Swapchain = std::make_unique<VulkanSwapchain>(swapchainInfo);
     m_Swapchain->PrintInfo();
 
-    // ---- 5.5 °´Í¼ÏñÊıÁ¿½¨ renderFinished ĞÅºÅÁ¿ --------------------------
-    //  ±ØĞëÔÚ swapchain Ö®ºó£ºÊıÁ¿È¡¾öÓÚ GetImageCount()
+    // ---- 5.5 æŒ‰å›¾åƒæ•°é‡å»º renderFinished ä¿¡å·é‡ --------------------------
+    //  å¿…é¡»åœ¨ swapchain ä¹‹åï¼šæ•°é‡å–å†³äº GetImageCount()
     CreateRenderFinishedSemaphores();
-    // ---- 6. ÃüÁî³Ø£¨È«¾ÖÒ»·İ£¬°´Ö¡Êı·ÖÅä»º³å£©----------------------------
+    // ---- 6. å‘½ä»¤æ± ï¼ˆå…¨å±€ä¸€ä»½ï¼ŒæŒ‰å¸§æ•°åˆ†é…ç¼“å†²ï¼‰----------------------------
     m_CommandPool = std::make_unique<VulkanCommandPool>(m_Context->GetDevice(), m_Context->GetGraphicsFamily(), k_MaxFramesInFlight);
-    // ---- 7. Ã¿Ö¡µÄÍ¬²½¶ÔÏó -----------------------------------------------
+    // ---- 7. æ¯å¸§çš„åŒæ­¥å¯¹è±¡ -----------------------------------------------
     //
-    //  ¡¾ÃüÁî»º³å´ÓÕâÀïÈ¡¡¿pool ÒÑ¾­°´ k_MaxFramesInFlight ·ÖÅäºÃÁË£¬
-    //    ÕâÀïÖ»ÊÇ°Ñ¾ä±úÌî½ø¸÷×ÔµÄ FrameResources£¬²¢½¨ºÃÅäÌ×µÄ
-    //    Á½¸öĞÅºÅÁ¿ + Ò»¸öÎ§À¸¡£
+    //  ã€å‘½ä»¤ç¼“å†²ä»è¿™é‡Œå–ã€‘pool å·²ç»æŒ‰ k_MaxFramesInFlight åˆ†é…å¥½äº†ï¼Œ
+    //    è¿™é‡Œåªæ˜¯æŠŠå¥æŸ„å¡«è¿›å„è‡ªçš„ FrameResourcesï¼Œå¹¶å»ºå¥½é…å¥—çš„
+    //    ä¸¤ä¸ªä¿¡å·é‡ + ä¸€ä¸ªå›´æ ã€‚
     m_Frames.resize(k_MaxFramesInFlight);
     for (uint32_t i = 0; i < k_MaxFramesInFlight; i++)
     {
         m_Frames[i].CommandBuffer = m_CommandPool->GetBuffers()[i];
         m_Frames[i].CreateSyncObjects(m_Context->GetDevice());
     }
-    // --------8. Í¼ĞÎ¹ÜÏß --------------------------------------------------
+    // ---- 7.5 å‡ ä½•ä½“ ------------------------------------------------------
+    //
+    //  MeshContext æŠŠåˆ›å»ºç¼“å†²éœ€è¦çš„å››æ ·ç¯å¢ƒæ‰“åŒ…ï¼Œ
+    //  è¿™æ · Mesh çš„ç”Ÿæˆå‡½æ•°ä¸ç”¨ä¸€è·¯ä¼  device / allocator / pool / queueã€‚
+    MeshContext meshContext{};
+    meshContext.Device        = m_Context->GetDevice();
+    meshContext.Allocator     = m_Allocator.get();
+    meshContext.CommandPool   = m_CommandPool.get();
+    meshContext.GraphicsQueue = m_Context->GetGraphicsQueue();
+
+    PrimitiveDesc cubeDesc;
+    cubeDesc.Type = PrimitiveType::Cube;
+    cubeDesc.Size = 1.0f;
+
+    m_Mesh = Mesh::Create(meshContext, cubeDesc);
+
+    std::printf("[Application] mesh : %u vertices, %u indices\n",
+                m_Mesh->GetVertexCount(), m_Mesh->GetIndexCount());
+    // --------8. å›¾å½¢ç®¡çº¿ --------------------------------------------------
+    // ---- é¡¶ç‚¹è¾“å…¥å¸ƒå±€ ----------------------------------------------------
+    //å’Œshaderé‡Œä¸€è‡´
+    //
+    //
+    VkVertexInputBindingDescription binding{};
+    binding.binding = 0;
+    binding.stride = sizeof(Vertex);                       // 48 å­—èŠ‚
+    binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    std::array<VkVertexInputAttributeDescription, 4> attributes{};
+
+    attributes[0].binding = 0;
+    attributes[0].location = 0;
+    attributes[0].format = VK_FORMAT_R32G32B32_SFLOAT;      // vec3 pos
+    attributes[0].offset = offsetof(Vertex, Position);
+
+    attributes[1].binding = 0;
+    attributes[1].location = 1;
+    attributes[1].format = VK_FORMAT_R32G32B32_SFLOAT;      // vec3 normal
+    attributes[1].offset = offsetof(Vertex, Normal);
+
+    attributes[2].binding = 0;
+    attributes[2].location = 2;
+    attributes[2].format = VK_FORMAT_R32G32_SFLOAT;         // vec2 texcoord
+    attributes[2].offset = offsetof(Vertex, Texcoord);
+
+    attributes[3].binding = 0;
+    attributes[3].location = 3;
+    attributes[3].format = VK_FORMAT_R32G32B32A32_SFLOAT;   // vec4 tangent
+    attributes[3].offset = offsetof(Vertex, Tangent);
+
     VulkanPipeline::CreateInfo pipelineInfo{};
     pipelineInfo.device = m_Context->GetDevice();
     pipelineInfo.colorFormat = m_Swapchain->GetFormat();
-    pipelineInfo.vertexSpvPath = "assets/shaders/Triangle.vert.spv";
-    pipelineInfo.fragSpvPath = "assets/shaders/Triangle.frag.spv";
+    pipelineInfo.vertexSpvPath = "assets/shaders/Mesh.vert.spv";
+    pipelineInfo.fragSpvPath = "assets/shaders/Mesh.frag.spv";
+    pipelineInfo.vertexBindings = { binding };
+    pipelineInfo.vertexAttributes = { attributes.begin(),attributes.end() };
+    pipelineInfo.pushConstantSize = sizeof(float);   // åªæ¨ä¸€ä¸ªå®½é«˜æ¯”
     m_Pipeline = std::make_unique<VulkanPipeline>(pipelineInfo);
     // ---------------debug test----------------------------------------------------
     RunAllocatorSelfTest(*m_Allocator);
@@ -364,9 +421,17 @@ void Application::Shutdown()
 {
     if (!m_Context || m_Context->GetDevice() == VK_NULL_HANDLE)
     {
-        // Init Ã»×ßµ½´´½¨ device ÄÇ²½£¬ºóÃæ¶¼Ã»ÓĞĞèÒªÇåÀíµÄ GPU ×ÊÔ´
+        // ã€è¿™é‡Œä¸èƒ½è°ƒä»»ä½•ä¾èµ– m_Context çš„å‡½æ•°ã€‘
+        //   èƒ½è¿›è¿™ä¸ªåˆ†æ”¯ï¼Œå°±è¯´æ˜ m_Context å·²ç»æ˜¯ç©ºæŒ‡é’ˆï¼ˆç¬¬äºŒæ¬¡ Shutdownï¼‰ï¼Œ
+        //   æˆ–è€… device æ ¹æœ¬æ²¡å»ºæˆã€‚è¿™ä¸¤ç§æƒ…å†µä¸‹éƒ½æ²¡æœ‰ GPU å·¥ä½œè¦ç­‰ï¼Œ
+        //   ä¹Ÿå°±ä¸éœ€è¦ vkDeviceWaitIdle â€”â€” ç¡¬è°ƒåªä¼šè§£å¼•ç”¨ç©ºæŒ‡é’ˆã€‚
+        //
+        //   æ›¾ç»çš„å†™æ³•åœ¨è¿™é‡ŒåŠ äº†ä¸€å¥ vkDeviceWaitIdle(m_Context->GetDevice())ï¼Œ
+        //   è¡¨ç°ä¸ºå…³çª—å£æ—¶å´©åœ¨ VulkanContext::GetDevice() é‡Œï¼ˆthis == nullptrï¼‰ã€‚
         m_Frames.clear();
-        m_RenderFinishedSemaphores.clear();   // ´ËÊ±±ØÈ»ÊÇ¿ÕµÄ£¬·ÀÓùĞÔÇåÀí
+        m_RenderFinishedSemaphores.clear();   // æ­¤æ—¶å¿…ç„¶æ˜¯ç©ºçš„ï¼Œé˜²å¾¡æ€§æ¸…ç†
+        m_Mesh.reset();
+        m_Pipeline.reset();
         m_CommandPool.reset();
         m_Swapchain.reset();
         m_Allocator.reset();
@@ -376,21 +441,21 @@ void Application::Shutdown()
 
     VkDevice device = m_Context->GetDevice();
 
-    // ---- 1. ÏÈÈÃ GPU ÍêÈ«Í£ÏÂÀ´ ------------------------------------------
+    // ---- 1. å…ˆè®© GPU å®Œå…¨åœä¸‹æ¥ ------------------------------------------
     //
-    //  ¡¾±ØĞëµÚÒ»²½¡¿ÏÂÃæÏú»ÙµÄ VkFence / VkSemaphore / VkCommandPool /
-    //    VkSwapchainKHR È«¶¼ÒªÇó¶ÔÓ¦×ÊÔ´²»ÔÚ pending ×´Ì¬¡£
-    //    ÍË³öÊ±×îºóÌá½»µÄÄÇÖ¡¿ÉÄÜ»¹ÔÚÅÜ£¬²»µÈ¾Í»á±ÀÔÚÇı¶¯ÄÚ²¿
-    //    £¨±íÏÖÎª nvoglv64.dll Àï¶ÁµØÖ· 0£©¡£
+    //  ã€å¿…é¡»ç¬¬ä¸€æ­¥ã€‘ä¸‹é¢é”€æ¯çš„ VkFence / VkSemaphore / VkCommandPool /
+    //    VkSwapchainKHR å…¨éƒ½è¦æ±‚å¯¹åº”èµ„æºä¸åœ¨ pending çŠ¶æ€ã€‚
+    //    é€€å‡ºæ—¶æœ€åæäº¤çš„é‚£å¸§å¯èƒ½è¿˜åœ¨è·‘ï¼Œä¸ç­‰å°±ä¼šå´©åœ¨é©±åŠ¨å†…éƒ¨
+    //    ï¼ˆè¡¨ç°ä¸º nvoglv64.dll é‡Œè¯»åœ°å€ 0ï¼‰ã€‚
     vkDeviceWaitIdle(device);
 
-    // ---- 1.5 Ïú»Ù°´Í¼ÏñË÷ÒıµÄ renderFinished ĞÅºÅÁ¿ -----------------------
-    //  ±ØĞëÔÚ vkDeviceWaitIdle Ö®ºó£º×îºóÒ»Ö¡µÄ present ¿ÉÄÜ»¹Ã»ÏûºÄÍêËüÃÇ¡£
+    // ---- 1.5 é”€æ¯æŒ‰å›¾åƒç´¢å¼•çš„ renderFinished ä¿¡å·é‡ -----------------------
+    //  å¿…é¡»åœ¨ vkDeviceWaitIdle ä¹‹åï¼šæœ€åä¸€å¸§çš„ present å¯èƒ½è¿˜æ²¡æ¶ˆè€—å®Œå®ƒä»¬ã€‚
     DestroyRenderFinishedSemaphores();
 
-    // ---- 2. ÖğÖ¡Ïú»ÙÍ¬²½¶ÔÏó ---------------------------------------------
+    // ---- 2. é€å¸§é”€æ¯åŒæ­¥å¯¹è±¡ ---------------------------------------------
     //
-    //  ÃüÁî»º³å¹é pool ËùÓĞ£¬²»ÔÚÕâÀïÊÍ·Å£»Ö»Ïú»ÙÎÒÃÇ×Ô¼º½¨µÄĞÅºÅÁ¿ºÍÎ§À¸¡£
+    //  å‘½ä»¤ç¼“å†²å½’ pool æ‰€æœ‰ï¼Œä¸åœ¨è¿™é‡Œé‡Šæ”¾ï¼›åªé”€æ¯æˆ‘ä»¬è‡ªå·±å»ºçš„ä¿¡å·é‡å’Œå›´æ ã€‚
     for (FrameResources& frame : m_Frames)
     {
         frame.DestroySyncObjects(device);
@@ -398,40 +463,63 @@ void Application::Shutdown()
     }
     m_Frames.clear();
 
-    // ---- 3. °´ÄæĞòÏú»ÙÆäÓà×ÊÔ´ -------------------------------------------
+    // ---- 3. æŒ‰é€†åºé”€æ¯å…¶ä½™èµ„æº -------------------------------------------
+    //
+    //  ã€æ¯ä¸€ä¸ª GPU èµ„æºéƒ½å¿…é¡»åœ¨è¿™é‡Œæ˜¾å¼ resetï¼Œä¸èƒ½æŒ‡æœ›æˆå‘˜è‡ªåŠ¨ææ„ã€‘
+    //    å› ä¸ºä¸‹é¢ä¼šæŠŠ m_Contextï¼ˆdeviceï¼‰reset æ‰ã€‚ç­‰åˆ° ~Application
+    //    çš„æˆå‘˜ææ„é˜¶æ®µï¼Œä»»ä½•è¿˜æ´»ç€çš„ VkBuffer / VkPipeline å†å»è°ƒ
+    //    vkDestroy*ï¼Œæ‹¿åˆ°çš„å°±æ˜¯ä¸€ä¸ªå·²é”€æ¯çš„ device â€”â€”
+    //    è¡¨ç°ä¸º vulkan-1.dll é‡Œ abortï¼ˆ"è¯·æ±‚äº†ä¸¥é‡çš„ç¨‹åºé€€å‡º"ï¼‰ï¼Œ
+    //    è€Œä¸æ˜¯è‡ªå·±ä»£ç é‡Œçš„ç©ºæŒ‡é’ˆå´©æºƒï¼Œæéš¾å®šä½ã€‚
+    //
+    //  é”€æ¯é¡ºåº = ä¾èµ–é“¾é€†åºï¼š
+    //    VertexBufferï¼ˆç”¨ allocatorï¼‰-> Pipeline -> CommandPool
+    //    -> Swapchain -> Allocator -> Context
+    m_Mesh.reset();  // â† æ›¾ç»æ¼äº†è¿™ä¸€è¡Œï¼Œå¯¼è‡´é€€å‡ºæ—¶å´©åœ¨ vkDestroyBuffer
     m_Pipeline.reset();
-    m_CommandPool.reset();   // pool Ò»²¢»ØÊÕËùÓĞ command buffer
+    m_CommandPool.reset();   // pool ä¸€å¹¶å›æ”¶æ‰€æœ‰ command buffer
     m_Swapchain.reset();     // imageView + swapchain
     m_Allocator.reset();     // VkDeviceMemory
     m_Context.reset();       // device + surface + instance
+
+    // ---- 4. é˜²å¾¡æ€§æ£€æŸ¥ ---------------------------------------------------
+    //
+    //  ä»¥åå†åŠ  GPU èµ„æºæ—¶å¦‚æœå¿˜äº†åœ¨ä¸Šé¢æ¸…ç†ï¼Œè¿™é‡Œä¼šåœ¨ Debug ä¸‹ç«‹åˆ»æ–­è¨€ï¼Œ
+    //  è€Œä¸æ˜¯ç­‰åˆ°é€€å‡ºæ—¶å´©åœ¨é©±åŠ¨å†…éƒ¨ã€‚æ–­è¨€ä¿¡æ¯æ¯” "è®¿é—®å†²çª" æœ‰ç”¨å¾—å¤šã€‚
+    if (m_Mesh || m_Pipeline || m_CommandPool ||
+        m_Swapchain || m_Allocator || m_Context)
+    {
+        std::fprintf(stderr,
+                     "[Application] WARNING: some GPU resources were not released in Shutdown()\n");
+    }
 
     m_FrameIndex = 0;
     m_Running = false;
 }
 
 // ===========================================================================
-//  ½»»»Á´ÖØ½¨£¨Í³Ò»Èë¿Ú£©
+//  äº¤æ¢é“¾é‡å»ºï¼ˆç»Ÿä¸€å…¥å£ï¼‰
 // ===========================================================================
 
 void Application::RecreateSwapchain()
 {
     m_Swapchain->Recreate(m_Window.GetWidth(), m_Window.GetHeight());
 
-    // ¡¾Í¼ÏñÊıÁ¿¿ÉÄÜ±ä»¯¡¿ÖØ½¨ºó±ØĞë°´ĞÂµÄÊıÁ¿ÖØ½¨ĞÅºÅÁ¿¡£
+    // ã€å›¾åƒæ•°é‡å¯èƒ½å˜åŒ–ã€‘é‡å»ºåå¿…é¡»æŒ‰æ–°çš„æ•°é‡é‡å»ºä¿¡å·é‡ã€‚
     //
-    //  Recreate ÄÚ²¿ÓĞ vkDeviceWaitIdle£¬ËùÒÔ´Ë¿Ì¾ÉµÄ renderFinished
-    //  ĞÅºÅÁ¿Ò»¶¨ÒÑ²»ÔÚÊ¹ÓÃÖĞ£¬Ïú»ÙÊÇ°²È«µÄ¡£
+    //  Recreate å†…éƒ¨æœ‰ vkDeviceWaitIdleï¼Œæ‰€ä»¥æ­¤åˆ»æ—§çš„ renderFinished
+    //  ä¿¡å·é‡ä¸€å®šå·²ä¸åœ¨ä½¿ç”¨ä¸­ï¼Œé”€æ¯æ˜¯å®‰å…¨çš„ã€‚
     //
-    //  ¡¾ÎªÊ²Ã´ËùÓĞÖØ½¨µã¶¼×ßÕâ¸öº¯Êı¡¿
-    //    ÖØ½¨ swapchain ÓĞÁ½¼şÊÂ±ØĞëÍ¬Ê±×ö£º»»Á´ + »»ĞÅºÅÁ¿Êı×é¡£
-    //    Ö»×öÇ°Ò»¼ş£¬ÏÂÒ»Ö¡°´ĞÂ imageIndex È¡ĞÅºÅÁ¿¾Í»áÔ½½ç¡£
-    //    °ÑÁ½¼şÊÂ°óÔÚÒ»¸öÈë¿ÚÀï£¬¾ÍÃ»ÈËÄÜÖ»¸ÄÒ»°ë¡£
+    //  ã€ä¸ºä»€ä¹ˆæ‰€æœ‰é‡å»ºç‚¹éƒ½èµ°è¿™ä¸ªå‡½æ•°ã€‘
+    //    é‡å»º swapchain æœ‰ä¸¤ä»¶äº‹å¿…é¡»åŒæ—¶åšï¼šæ¢é“¾ + æ¢ä¿¡å·é‡æ•°ç»„ã€‚
+    //    åªåšå‰ä¸€ä»¶ï¼Œä¸‹ä¸€å¸§æŒ‰æ–° imageIndex å–ä¿¡å·é‡å°±ä¼šè¶Šç•Œã€‚
+    //    æŠŠä¸¤ä»¶äº‹ç»‘åœ¨ä¸€ä¸ªå…¥å£é‡Œï¼Œå°±æ²¡äººèƒ½åªæ”¹ä¸€åŠã€‚
     CreateRenderFinishedSemaphores();
 }
 
 void Application::CreateRenderFinishedSemaphores()
 {
-    // ÏÈÇåµô¾ÉµÄ£¨Ê×´Îµ÷ÓÃÊ±ÊÇ¿ÕÊı×é£¬ÎŞº¦£©
+    // å…ˆæ¸…æ‰æ—§çš„ï¼ˆé¦–æ¬¡è°ƒç”¨æ—¶æ˜¯ç©ºæ•°ç»„ï¼Œæ— å®³ï¼‰
     DestroyRenderFinishedSemaphores();
 
     VkDevice device = m_Context->GetDevice();
@@ -455,7 +543,7 @@ void Application::CreateRenderFinishedSemaphores()
 
 void Application::DestroyRenderFinishedSemaphores()
 {
-    // Ã»ÓĞ device Ê±²»ÄÜµ÷ vkDestroySemaphore£¬Ö±½ÓÇå¿ÕÊı×é
+    // æ²¡æœ‰ device æ—¶ä¸èƒ½è°ƒ vkDestroySemaphoreï¼Œç›´æ¥æ¸…ç©ºæ•°ç»„
     if (!m_RenderFinishedSemaphores.empty() &&
         m_Context && m_Context->GetDevice() != VK_NULL_HANDLE)
     {
@@ -475,55 +563,55 @@ void Application::DestroyRenderFinishedSemaphores()
 }
 
 // ===========================================================================
-//  µ¥Ö¡äÖÈ¾
+//  å•å¸§æ¸²æŸ“
 // ===========================================================================
 void Application::RenderFrame()
 {
     VkDevice device = m_Context->GetDevice();
-    // ---- È¡³öÕâÒ»Ö¡ÒªÓÃµÄ²ÛÎ» --------------------------------------------
+    // ---- å–å‡ºè¿™ä¸€å¸§è¦ç”¨çš„æ§½ä½ --------------------------------------------
     //
-    //  ¡¾¹Ø¼üÈÏÖª¡¿¶àÖ¡²¢ĞĞÊ±£¬µÈµÄÊÇ"µ±Ç°²ÛÎ»"µÄÎ§À¸£¬²»ÊÇ"ÉÏÒ»Ö¡"µÄ¡£
-    //    ²ÛÎ» 0 ºÍ²ÛÎ» 1 ·Ö±ğ¼ÇÂ¼¸÷×ÔÄÇÒ»Ö¡ÊÇ·ñÖ´ĞĞÍê¡£
-    //    m_FrameIndex Ã¿Ö¡ÍÆ½ø£¬ÕıºÃÂÖÁ÷Ê¹ÓÃÁ½Ì××ÊÔ´¡£
+    //  ã€å…³é”®è®¤çŸ¥ã€‘å¤šå¸§å¹¶è¡Œæ—¶ï¼Œç­‰çš„æ˜¯"å½“å‰æ§½ä½"çš„å›´æ ï¼Œä¸æ˜¯"ä¸Šä¸€å¸§"çš„ã€‚
+    //    æ§½ä½ 0 å’Œæ§½ä½ 1 åˆ†åˆ«è®°å½•å„è‡ªé‚£ä¸€å¸§æ˜¯å¦æ‰§è¡Œå®Œã€‚
+    //    m_FrameIndex æ¯å¸§æ¨è¿›ï¼Œæ­£å¥½è½®æµä½¿ç”¨ä¸¤å¥—èµ„æºã€‚
     FrameResources& frame = m_Frames[m_FrameIndex];
-    // ---- 1. µÈÕâÒ»Ö¡ÉÏ´ÎÌá½»µÄÃüÁîÖ´ĞĞÍê ---------------------------------
+    // ---- 1. ç­‰è¿™ä¸€å¸§ä¸Šæ¬¡æäº¤çš„å‘½ä»¤æ‰§è¡Œå®Œ ---------------------------------
     //
-    //  ÎªÊ²Ã´±ØĞëµÈ£º
-    //    ÒªÖØÖÃ²¢ÖØÂ¼ frame.CommandBuffer¡£Èç¹û GPU »¹ÔÚ¶ÁËü£¬
-    //    ÖØÂ¼»áĞ´ÈëÕıÔÚ±»Ö´ĞĞµÄÃüÁîÁ÷ ¡ª¡ª »­ÃæËæ»ú´íÂÒ»òÇı¶¯±ÀÀ£¡£
+    //  ä¸ºä»€ä¹ˆå¿…é¡»ç­‰ï¼š
+    //    è¦é‡ç½®å¹¶é‡å½• frame.CommandBufferã€‚å¦‚æœ GPU è¿˜åœ¨è¯»å®ƒï¼Œ
+    //    é‡å½•ä¼šå†™å…¥æ­£åœ¨è¢«æ‰§è¡Œçš„å‘½ä»¤æµ â€”â€” ç”»é¢éšæœºé”™ä¹±æˆ–é©±åŠ¨å´©æºƒã€‚
     ThrowOnFailed(vkWaitForFences(device, 1, &frame.InFlight, VK_TRUE, UINT64_MAX),
         "vkWaitForFences");
-    // ---- 2. È¡Ò»ÕÅ¿ÉĞ´µÄ½»»»Á´Í¼Ïñ ---------------------------------------
+    // ---- 2. å–ä¸€å¼ å¯å†™çš„äº¤æ¢é“¾å›¾åƒ ---------------------------------------
     uint32_t imageIndex = 0;
     VkResult acquireResult = vkAcquireNextImageKHR(device, m_Swapchain->GetHandle(), UINT64_MAX, frame.ImageAvailable, VK_NULL_HANDLE, &imageIndex);
-    // ---- 3. ½»»»Á´Ê§Ğ§£ºÖØ½¨ºóÖ±½Ó·µ»Ø -----------------------------------
+    // ---- 3. äº¤æ¢é“¾å¤±æ•ˆï¼šé‡å»ºåç›´æ¥è¿”å› -----------------------------------
     //
-    //  ¡¾ÕâÀï¾ø¶Ô²»ÄÜÔÚÇ°Ãæ reset Î§À¸¡¿
-    //    Èç¹û vkResetFences ·ÅÔÚ wait Ö®ºó¡¢acquire Ö®Ç°£¬
-    //    ÕâÌõ return Â·¾¶»áÈÃÎ§À¸Í£ÔÚ"Î´´¥·¢"×´Ì¬£¬
-    //    ¶øÕâÒ»Ö¡Ã»ÓĞ submit¡¢ÓÀÔ¶²»»á signal ¡ª¡ª ÏÂÒ»Ö¡
-    //    vkWaitForFences ½«ÓÀ¾Ã×èÈû£¬³ÌĞò¿¨ËÀ¡£
-    //    ´°¿Ú resize ±ØÈ»×ßÕâÌõÂ·¾¶£¬ËùÒÔÕâ¸ö¿ÓÒ»¶¨»á²Èµ½¡£
+    //  ã€è¿™é‡Œç»å¯¹ä¸èƒ½åœ¨å‰é¢ reset å›´æ ã€‘
+    //    å¦‚æœ vkResetFences æ”¾åœ¨ wait ä¹‹åã€acquire ä¹‹å‰ï¼Œ
+    //    è¿™æ¡ return è·¯å¾„ä¼šè®©å›´æ åœåœ¨"æœªè§¦å‘"çŠ¶æ€ï¼Œ
+    //    è€Œè¿™ä¸€å¸§æ²¡æœ‰ submitã€æ°¸è¿œä¸ä¼š signal â€”â€” ä¸‹ä¸€å¸§
+    //    vkWaitForFences å°†æ°¸ä¹…é˜»å¡ï¼Œç¨‹åºå¡æ­»ã€‚
+    //    çª—å£ resize å¿…ç„¶èµ°è¿™æ¡è·¯å¾„ï¼Œæ‰€ä»¥è¿™ä¸ªå‘ä¸€å®šä¼šè¸©åˆ°ã€‚
     if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR)
     {
         RecreateSwapchain();
         return;
     }
-    // SUBOPTIMAL ±íÊ¾"ÄÜÓÃµ«²»ÊÇ×îÓÅ"£º¼ÌĞø»­ÍêÕâÒ»Ö¡£¬×îºóÔÙÖØ½¨¡£
-    // °ÑËüµ±´íÎóÅ×³öÊÇ³£¼ûÎóĞ´¡£
+    // SUBOPTIMAL è¡¨ç¤º"èƒ½ç”¨ä½†ä¸æ˜¯æœ€ä¼˜"ï¼šç»§ç»­ç”»å®Œè¿™ä¸€å¸§ï¼Œæœ€åå†é‡å»ºã€‚
+    // æŠŠå®ƒå½“é”™è¯¯æŠ›å‡ºæ˜¯å¸¸è§è¯¯å†™ã€‚
     const bool isSuboptimal = (acquireResult == VK_SUBOPTIMAL_KHR);
     if (!isSuboptimal && acquireResult != VK_SUCCESS)
     {
         throw std::runtime_error("[Application] vkAcquireNextImageKHR failed");
     }
-    // ---- 3.5 È¡ÕâÕÅÍ¼Ïñ×¨ÓÃµÄ renderFinished ĞÅºÅÁ¿ -----------------------
+    // ---- 3.5 å–è¿™å¼ å›¾åƒä¸“ç”¨çš„ renderFinished ä¿¡å·é‡ -----------------------
     //
-    //  ¡¾Ë÷ÒıÀ´×Ô imageIndex£¬²»ÊÇ m_FrameIndex¡¿
-    //    present µÄÉúÃüÖÜÆÚ¸ú"Í¼Ïñ"°ó¶¨£¬²»¸ú"Ö¡²ÛÎ»"°ó¶¨¡£
-    //    ÓÃ´íÁË¾Í»á»Øµ½"ĞÅºÅÁ¿»¹ÔÚ±» present Õ¼ÓÃÊ±ÓÖ±» signal"µÄÎ¥¹æ×´Ì¬¡£
+    //  ã€ç´¢å¼•æ¥è‡ª imageIndexï¼Œä¸æ˜¯ m_FrameIndexã€‘
+    //    present çš„ç”Ÿå‘½å‘¨æœŸè·Ÿ"å›¾åƒ"ç»‘å®šï¼Œä¸è·Ÿ"å¸§æ§½ä½"ç»‘å®šã€‚
+    //    ç”¨é”™äº†å°±ä¼šå›åˆ°"ä¿¡å·é‡è¿˜åœ¨è¢« present å ç”¨æ—¶åˆè¢« signal"çš„è¿è§„çŠ¶æ€ã€‚
     //
-    //  ÊıÁ¿¼ì²é£ºÖØ½¨ swapchain ºóÈç¹ûÍüÁËÍ¬²½ÖØ½¨ĞÅºÅÁ¿£¬ÕâÀï»áÁ¢¿Ì
-    //  Å×³öÒ»¾äÈË»°£¬¶ø²»ÊÇµÈÇı¶¯¶Áµ½Ô½½çÄÚ´æ¡£
+    //  æ•°é‡æ£€æŸ¥ï¼šé‡å»º swapchain åå¦‚æœå¿˜äº†åŒæ­¥é‡å»ºä¿¡å·é‡ï¼Œè¿™é‡Œä¼šç«‹åˆ»
+    //  æŠ›å‡ºä¸€å¥äººè¯ï¼Œè€Œä¸æ˜¯ç­‰é©±åŠ¨è¯»åˆ°è¶Šç•Œå†…å­˜ã€‚
     if (imageIndex >= static_cast<uint32_t>(m_RenderFinishedSemaphores.size()))
     {
         throw std::runtime_error(
@@ -531,30 +619,30 @@ void Application::RenderFrame()
     }
     VkSemaphore renderFinished = m_RenderFinishedSemaphores[imageIndex];
 
-    // ---- 4. È·ÈÏÒªÌá½»ÁË£¬ÕâÊ±ºò²Å reset Î§À¸ºÍÃüÁî»º³å -------------------
+    // ---- 4. ç¡®è®¤è¦æäº¤äº†ï¼Œè¿™æ—¶å€™æ‰ reset å›´æ å’Œå‘½ä»¤ç¼“å†² -------------------
     ThrowOnFailed(vkResetFences(device, 1, &frame.InFlight), "vkResetFences");
 
-    // µ¥¶ÀÖØÖÃÕâÌõ»º³å£¨ÒÀÀµ pool µÄ RESET_COMMAND_BUFFER_BIT ±êÖ¾£©
+    // å•ç‹¬é‡ç½®è¿™æ¡ç¼“å†²ï¼ˆä¾èµ– pool çš„ RESET_COMMAND_BUFFER_BIT æ ‡å¿—ï¼‰
     ThrowOnFailed(vkResetCommandBuffer(frame.CommandBuffer, 0), "vkResetCommandBuffer");
-    // ---- 5. Â¼ÖÆÃüÁî -----------------------------------------------------
+    // ---- 5. å½•åˆ¶å‘½ä»¤ -----------------------------------------------------
    //
-   //  ¡¾ÓÃ×÷ÓÃÓò°ü×¡¡¿CommandRecording Îö¹¹Ê±×Ô¶¯ vkEndCommandBuffer£¬
-   //    ÖĞÍ¾Å×Òì³£Ò²²»»áÂ©¡£ÊÖĞ´ Begin/End µÄ°æ±¾ÔÚÒì³£Â·¾¶ÉÏ»áÂ©µô End£¬
-   //    µ¼ÖÂ»º³å¿¨ÔÚ recording ×´Ì¬¡£
+   //  ã€ç”¨ä½œç”¨åŸŸåŒ…ä½ã€‘CommandRecording ææ„æ—¶è‡ªåŠ¨ vkEndCommandBufferï¼Œ
+   //    ä¸­é€”æŠ›å¼‚å¸¸ä¹Ÿä¸ä¼šæ¼ã€‚æ‰‹å†™ Begin/End çš„ç‰ˆæœ¬åœ¨å¼‚å¸¸è·¯å¾„ä¸Šä¼šæ¼æ‰ Endï¼Œ
+   //    å¯¼è‡´ç¼“å†²å¡åœ¨ recording çŠ¶æ€ã€‚
     {
         CommandRecording recording(frame.CommandBuffer);
         VkCommandBuffer cmd = recording.Get();
 
-        // 5a. Í¼ÏñÓÃÍ¾£º³ÊÏÖ -> ÑÕÉ«¸½¼ş
+        // 5a. å›¾åƒç”¨é€”ï¼šå‘ˆç° -> é¢œè‰²é™„ä»¶
         TransitionImageToColorAttachment(cmd, imageIndex);
 
-        // 5b. ÇåÆÁ£¨Dynamic Rendering£¬ÎŞ RenderPass ¶ÔÏó£©
+        // 5b. æ¸…å±ï¼ˆDynamic Renderingï¼Œæ—  RenderPass å¯¹è±¡ï¼‰
         VkRenderingAttachmentInfo colorAttachment{};
         colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         colorAttachment.imageView = m_Swapchain->GetImageViews()[imageIndex];
         colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;   // ½á¹ûÁô¸ø present
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;   // ç»“æœç•™ç»™ present
         colorAttachment.clearValue = k_ClearColor;
 
         VkRenderingInfo renderingInfo{};
@@ -564,30 +652,30 @@ void Application::RenderFrame()
         renderingInfo.layerCount = 1;
         renderingInfo.colorAttachmentCount = 1;
         renderingInfo.pColorAttachments = &colorAttachment;
-        // ÎŞÉî¶È/Ä£°å¸½¼ş£¬pDepthAttachment / pStencilAttachment ±£³Ö nullptr
+        // æ— æ·±åº¦/æ¨¡æ¿é™„ä»¶ï¼ŒpDepthAttachment / pStencilAttachment ä¿æŒ nullptr
 
         vkCmdBeginRendering(cmd, &renderingInfo);
 
-        // ---- °ó¶¨¹ÜÏß ----------------------------------------------------
+        // ---- ç»‘å®šç®¡çº¿ ----------------------------------------------------
         //
-        // ¡¾±ØĞëÔÚ BeginRendering Ö®ºó¡¿¹ÜÏß°üº¬ÑÕÉ«¸½¼ş¸ñÊ½µÈ×´Ì¬£¬
-        //   Ö»ÓĞÔÚ rend rendering scope ÄÚ°ó¶¨²ÅÊÇºÏ·¨µÄ¡£
+        // ã€å¿…é¡»åœ¨ BeginRendering ä¹‹åã€‘ç®¡çº¿åŒ…å«é¢œè‰²é™„ä»¶æ ¼å¼ç­‰çŠ¶æ€ï¼Œ
+        //   åªæœ‰åœ¨ rend rendering scope å†…ç»‘å®šæ‰æ˜¯åˆæ³•çš„ã€‚
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetHandle());
-        // ---- ÉèÖÃ¶¯Ì¬ÊÓ¿ÚÓë²Ã¼ô -------------------------------------------
+        // ---- è®¾ç½®åŠ¨æ€è§†å£ä¸è£å‰ª -------------------------------------------
         //
-        // ÕâÁ½ÏîÔÚ¹ÜÏßÀïÉùÃ÷Îª dynamic£¬±ØĞëÃ¿Ö¡ÉèÖÃ¡£
-        // ¡¾ÍüÁËÉèµÄºó¹û¡¿ÊÓ¿ÚÊÇÎ´¶¨ÒåÖµ£¬Èı½ÇĞÎ¿ÉÄÜÍêÈ«²»¿É¼û£¬
-        //   ¶øÇÒĞ£Ñé²ãÖ»ÔÚ²¿·ÖÇı¶¯ÉÏ±¨´í¡£
+        // è¿™ä¸¤é¡¹åœ¨ç®¡çº¿é‡Œå£°æ˜ä¸º dynamicï¼Œå¿…é¡»æ¯å¸§è®¾ç½®ã€‚
+        // ã€å¿˜äº†è®¾çš„åæœã€‘è§†å£æ˜¯æœªå®šä¹‰å€¼ï¼Œä¸‰è§’å½¢å¯èƒ½å®Œå…¨ä¸å¯è§ï¼Œ
+        //   è€Œä¸”æ ¡éªŒå±‚åªåœ¨éƒ¨åˆ†é©±åŠ¨ä¸ŠæŠ¥é”™ã€‚
         //
-        // ÓÃ swapchain µÄ extent£¬¶ø²»ÊÇ´°¿Ú³ß´ç ¡ª¡ª Á½ÕßÔÚ±ß½çÇé¿öÏÂ¿ÉÄÜ²îÒ»ÏñËØ£¬
-        // ÓÃ´í»áÓĞ 1px µÄ±ß·ì»òÒç³ö¡£
+        // ç”¨ swapchain çš„ extentï¼Œè€Œä¸æ˜¯çª—å£å°ºå¯¸ â€”â€” ä¸¤è€…åœ¨è¾¹ç•Œæƒ…å†µä¸‹å¯èƒ½å·®ä¸€åƒç´ ï¼Œ
+        // ç”¨é”™ä¼šæœ‰ 1px çš„è¾¹ç¼æˆ–æº¢å‡ºã€‚
         const VkExtent2D extent = m_Swapchain->GetExtent();
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
         viewport.width = static_cast<float>(extent.width);
         viewport.height = static_cast<float>(extent.height);
-        viewport.minDepth = 0.0f;   // Vulkan µÄÉî¶È·¶Î§ÊÇ [0,1]£¬²»ÊÇ GL µÄ [-1,1]
+        viewport.minDepth = 0.0f;   // Vulkan çš„æ·±åº¦èŒƒå›´æ˜¯ [0,1]ï¼Œä¸æ˜¯ GL çš„ [-1,1]
         viewport.maxDepth = 1.0f;
         vkCmdSetViewport(cmd, 0, 1, &viewport);
 
@@ -596,31 +684,35 @@ void Application::RenderFrame()
         scissor.extent = extent;
         vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-        // ---- »æÖÆ --------------------------------------------------------
+        // ---- æ¨é€å®½é«˜æ¯” ----------------------------------------------------
         //
-        // ²ÎÊı£º(ÃüÁî»º³å, ¶¥µãÊı, ÊµÀıÊı, ÆğÊ¼¶¥µã, ÆğÊ¼ÊµÀı)
-        // ¶¥µãÎ»ÖÃÓÉ gl_VertexID ÔÚ×ÅÉ«Æ÷ÀïÉú³É£¬Ã»ÓĞ¶¥µã»º³åÒª°ó¡£
+        // ã€å¿…é¡»åœ¨ bindPipeline ä¹‹åã€draw ä¹‹å‰ã€‘
+        //   æ¨é€å¸¸é‡çš„å¸ƒå±€å±äºç®¡çº¿å¸ƒå±€ï¼›æ²¡ç»‘ç®¡çº¿æ—¶è°ƒç”¨æ˜¯æœªå®šä¹‰è¡Œä¸ºã€‚
         //
-        // ¡¾±ØĞëÔÚ EndRendering Ö®Ç°¡¿
-        //   vkCmdDraw ÊÇ render pass ÄÚ²¿ÃüÁî¡£·Åµ½ EndRendering Ö®ºó£¬
-        //   Ğ£Ñé²ã»á±¨ VUID-vkCmdDraw-renderpass£¨"must be issued inside
-        //   an active render pass"£©£¬²¢ÇÒÊ²Ã´¶¼²»»á»­³öÀ´¡£
-        //
-        //   Í¬Àí£¬vkCmdBindPipeline / vkCmdSetViewport / vkCmdSetScissor
-        //   Ò²È«¶¼±ØĞë¼ĞÔÚ BeginRendering ºÍ EndRendering Ö®¼ä¡£
-        vkCmdDraw(cmd, 3, 1, 0, 0);
+        //   è¿™ä¸ªå€¼ç”¨æ¥æŠµæ¶ˆ NDC -> è§†å£çš„éç­‰æ¯”ç¼©æ”¾ï¼š
+        //   800x600 çš„çª—å£ä¸‹ï¼Œx çš„ 1 ä¸ª NDC å•ä½ = 400 åƒç´ ï¼Œ
+        //   y çš„ 1 ä¸ªå•ä½ = 300 åƒç´ ï¼Œä¸ä¿®æ­£å°±ä¼šæ¨ªå‘æ‹‰ä¼¸ 1.33 å€ã€‚
+        const float aspect = static_cast<float>(extent.width) /
+                             static_cast<float>(extent.height);
+
+        vkCmdPushConstants(cmd, m_Pipeline->GetLayout(),
+                           VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float), &aspect);
+
+        //Mesh å†…éƒ¨å®Œæˆç»‘å®šå’Œç»˜åˆ¶
+        m_Mesh->Bind(cmd);
+        m_Mesh->Draw(cmd);
 
         vkCmdEndRendering(cmd);
 
-        // 5c. Í¼ÏñÓÃÍ¾£ºÑÕÉ«¸½¼ş -> ³ÊÏÖ
+        // 5c. å›¾åƒç”¨é€”ï¼šé¢œè‰²é™„ä»¶ -> å‘ˆç°
         TransitionImageToPresent(cmd, imageIndex);
 
     }
-    // ---- 6. Ìá½» ---------------------------------------------------------
+    // ---- 6. æäº¤ ---------------------------------------------------------
     //
-    //  pWaitDstStageMask µÄº¬Òå£ºÔÚµ½´ïÕâ¸ö¹ÜÏß½×¶ÎÖ®Ç°£¬ÏÈµÈ imageAvailable¡£
-    //    COLOR_ATTACHMENT_OUTPUT = "¿ªÊ¼Ğ´ÑÕÉ«Ö®Ç°µÈ"£¬ÕâÊÇ×î¾«È·µÄÊ±»ú¡£
-    //    Ìî TOP_OF_PIPE Ò²ÄÜÅÜ£¬µ«»áÈÃµÈ´ı·¢ÉúµÃ¸üÔç£¬Ä³Ğ©Çı¶¯ÉÏ¶àÒ»Ö¡ÑÓ³Ù¡£
+    //  pWaitDstStageMask çš„å«ä¹‰ï¼šåœ¨åˆ°è¾¾è¿™ä¸ªç®¡çº¿é˜¶æ®µä¹‹å‰ï¼Œå…ˆç­‰ imageAvailableã€‚
+    //    COLOR_ATTACHMENT_OUTPUT = "å¼€å§‹å†™é¢œè‰²ä¹‹å‰ç­‰"ï¼Œè¿™æ˜¯æœ€ç²¾ç¡®çš„æ—¶æœºã€‚
+    //    å¡« TOP_OF_PIPE ä¹Ÿèƒ½è·‘ï¼Œä½†ä¼šè®©ç­‰å¾…å‘ç”Ÿå¾—æ›´æ—©ï¼ŒæŸäº›é©±åŠ¨ä¸Šå¤šä¸€å¸§å»¶è¿Ÿã€‚
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
     VkSubmitInfo submitInfo{};
@@ -633,10 +725,10 @@ void Application::RenderFrame()
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = &renderFinished;
 
-    // Ìá½»Ê±°ÑÕâÒ»Ö¡µÄÎ§À¸¹ÒÉÏ£¬GPU Ö´ĞĞÍê»á×Ô¶¯ signal Ëü
+    // æäº¤æ—¶æŠŠè¿™ä¸€å¸§çš„å›´æ æŒ‚ä¸Šï¼ŒGPU æ‰§è¡Œå®Œä¼šè‡ªåŠ¨ signal å®ƒ
     ThrowOnFailed(vkQueueSubmit(m_Context->GetGraphicsQueue(), 1, &submitInfo, frame.InFlight),
         "vkQueueSubmit");
-    // ---- 7. ³ÊÏÖ ---------------------------------------------------------
+    // ---- 7. å‘ˆç° ---------------------------------------------------------
     VkSwapchainKHR swapchain = m_Swapchain->GetHandle();
 
     VkPresentInfoKHR presentInfo{};
@@ -648,7 +740,7 @@ void Application::RenderFrame()
     presentInfo.pImageIndices = &imageIndex;
 
     VkResult presentResult = vkQueuePresentKHR(m_Context->GetPresentQueue(), &presentInfo);
-    // ÈıÖÖÇé¿ö¶¼ÒªÖØ½¨£ºpresent Ã÷È·Ê§Ğ§¡¢present ´ÎÓÅ¡¢acquire Ê±ÒÑ¾­´ÎÓÅ
+    // ä¸‰ç§æƒ…å†µéƒ½è¦é‡å»ºï¼špresent æ˜ç¡®å¤±æ•ˆã€present æ¬¡ä¼˜ã€acquire æ—¶å·²ç»æ¬¡ä¼˜
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR ||
         presentResult == VK_SUBOPTIMAL_KHR ||
         isSuboptimal)
@@ -660,32 +752,32 @@ void Application::RenderFrame()
         throw std::runtime_error("[Application] vkQueuePresentKHR failed");
     }
 
-    // ---- 8. ÍÆ½øµ½ÏÂÒ»¸ö²ÛÎ» ---------------------------------------------
+    // ---- 8. æ¨è¿›åˆ°ä¸‹ä¸€ä¸ªæ§½ä½ ---------------------------------------------
     //
-    //  ¡¾±ØĞëÔÚº¯ÊıÄ©Î²¡¿Èç¹û·ÅÔÚ¿ªÍ·£¬acquire Ê§°ÜÌáÇ° return Ê±
-    //    Ë÷Òı²»»áÍÆ½ø£¬ÏÂÒ»Ö¡»¹ÊÇÍ¬Ò»¸ö²ÛÎ» ¡ª¡ª ÄÇ¸ö²ÛÎ»µÄÎ§À¸¿ÉÄÜ
-    //    ´¦ÓÚÎ´´¥·¢×´Ì¬£¬Ö±½ÓËÀËø¡£
+    //  ã€å¿…é¡»åœ¨å‡½æ•°æœ«å°¾ã€‘å¦‚æœæ”¾åœ¨å¼€å¤´ï¼Œacquire å¤±è´¥æå‰ return æ—¶
+    //    ç´¢å¼•ä¸ä¼šæ¨è¿›ï¼Œä¸‹ä¸€å¸§è¿˜æ˜¯åŒä¸€ä¸ªæ§½ä½ â€”â€” é‚£ä¸ªæ§½ä½çš„å›´æ å¯èƒ½
+    //    å¤„äºæœªè§¦å‘çŠ¶æ€ï¼Œç›´æ¥æ­»é”ã€‚
     m_FrameIndex = (m_FrameIndex + 1) % k_MaxFramesInFlight;
 }
 // ===========================================================================
-//  Í¼ÏñÓÃÍ¾×ª»»
+//  å›¾åƒç”¨é€”è½¬æ¢
 // ===========================================================================
 
 void Application::TransitionImageToColorAttachment(VkCommandBuffer cmd, uint32_t imageIndex)
 {
-    // ¡¾Ê²Ã´ÊÇ image layout¡¿
-    //   Vulkan ÒªÇóÃ¿ÕÅÍ¼ÏñÔÚÈÎºÎÊ±¿Ì¶¼ÓĞÃ÷È·µÄ"ÓÃÍ¾±êÇ©"£¬Ëü¾ö¶¨
-    //   ÏÔ´æÔÚÎïÀíÉÏµÄÅÅ²¼£¨tiling£©¡£Í¬Ò»ÕÅÍ¼²»ÄÜÍ¬Ê±±»µ±"³ÊÏÖÄ¿±ê"
-    //   ºÍ"äÖÈ¾Ä¿±ê"ÓÃ£¬ÇĞ»»±ØĞëÏÔÊ½×ª»»²¢²åÆÁÕÏ£¬ÈÃÇı¶¯ÓĞ»ú»áÖØÅÅ¡£
+    // ã€ä»€ä¹ˆæ˜¯ image layoutã€‘
+    //   Vulkan è¦æ±‚æ¯å¼ å›¾åƒåœ¨ä»»ä½•æ—¶åˆ»éƒ½æœ‰æ˜ç¡®çš„"ç”¨é€”æ ‡ç­¾"ï¼Œå®ƒå†³å®š
+    //   æ˜¾å­˜åœ¨ç‰©ç†ä¸Šçš„æ’å¸ƒï¼ˆtilingï¼‰ã€‚åŒä¸€å¼ å›¾ä¸èƒ½åŒæ—¶è¢«å½“"å‘ˆç°ç›®æ ‡"
+    //   å’Œ"æ¸²æŸ“ç›®æ ‡"ç”¨ï¼Œåˆ‡æ¢å¿…é¡»æ˜¾å¼è½¬æ¢å¹¶æ’å±éšœï¼Œè®©é©±åŠ¨æœ‰æœºä¼šé‡æ’ã€‚
     //
-    //   OpenGL Ã»ÓĞÕâ¸ö¸ÅÄî ¡ª¡ª ÕâÊÇ Vulkan ×î³£¼ûºÚÆÁÔ­ÒòÖ®Ò»¡£
+    //   OpenGL æ²¡æœ‰è¿™ä¸ªæ¦‚å¿µ â€”â€” è¿™æ˜¯ Vulkan æœ€å¸¸è§é»‘å±åŸå› ä¹‹ä¸€ã€‚
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 
-    // ¡¾ÎªÊ²Ã´ÓÃ UNDEFINED ×÷Æğµã¡¿
-    //   Ã¿Ö¡¶¼ÇåÆÁ£¬²»ĞèÒª±£ÁôÉÏÒ»Ö¡ÄÚÈİ¡£ÉùÃ÷ UNDEFINED µÈÓÚ¸æËßÇı¶¯
-    //   "ÕâÀïµÄÊı¾İ¿ÉÒÔ¶ª"£¬Çı¶¯»áÌø¹ı¸´ÖÆ£¬¸ü¿ì¡£
-    //   Èô½«À´¸Ä³É"ÔÚÉÏÒ»Ö¡»ù´¡ÉÏµş¼Ó"£¬±ØĞë»»³É PRESENT_SRC_KHR¡£
+    // ã€ä¸ºä»€ä¹ˆç”¨ UNDEFINED ä½œèµ·ç‚¹ã€‘
+    //   æ¯å¸§éƒ½æ¸…å±ï¼Œä¸éœ€è¦ä¿ç•™ä¸Šä¸€å¸§å†…å®¹ã€‚å£°æ˜ UNDEFINED ç­‰äºå‘Šè¯‰é©±åŠ¨
+    //   "è¿™é‡Œçš„æ•°æ®å¯ä»¥ä¸¢"ï¼Œé©±åŠ¨ä¼šè·³è¿‡å¤åˆ¶ï¼Œæ›´å¿«ã€‚
+    //   è‹¥å°†æ¥æ”¹æˆ"åœ¨ä¸Šä¸€å¸§åŸºç¡€ä¸Šå åŠ "ï¼Œå¿…é¡»æ¢æˆ PRESENT_SRC_KHRã€‚
     barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
@@ -699,17 +791,17 @@ void Application::TransitionImageToColorAttachment(VkCommandBuffer cmd, uint32_t
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
 
-    // ·ÃÎÊÑÚÂë£º×ª»»Ç°Ã»ÓĞ¶Á²Ù×÷£¬×ª»»ºóÊÇÑÕÉ«Ğ´Èë
+    // è®¿é—®æ©ç ï¼šè½¬æ¢å‰æ²¡æœ‰è¯»æ“ä½œï¼Œè½¬æ¢åæ˜¯é¢œè‰²å†™å…¥
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
     vkCmdPipelineBarrier(
         cmd,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,              // Æğµã£ºÃüÁîÁ÷×î¿ªÍ·
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,  // ÖÕµã£º¿ªÊ¼Ğ´ÑÕÉ«
+        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,              // èµ·ç‚¹ï¼šå‘½ä»¤æµæœ€å¼€å¤´
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,  // ç»ˆç‚¹ï¼šå¼€å§‹å†™é¢œè‰²
         0,
-        0, nullptr,      // ÎŞÈ«¾ÖÄÚ´æÆÁÕÏ
-        0, nullptr,      // ÎŞ»º³åÆÁÕÏ
+        0, nullptr,      // æ— å…¨å±€å†…å­˜å±éšœ
+        0, nullptr,      // æ— ç¼“å†²å±éšœ
         1, &barrier);
 }
 void Application::TransitionImageToPresent(VkCommandBuffer cmd, uint32_t imageIndex)
@@ -728,14 +820,14 @@ void Application::TransitionImageToPresent(VkCommandBuffer cmd, uint32_t imageIn
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
 
-    // ÑÕÉ«Ğ´ÈëÍê³É -> ½»¸øÏÔÊ¾ÒıÇæ¶ÁÈ¡
+    // é¢œè‰²å†™å…¥å®Œæˆ -> äº¤ç»™æ˜¾ç¤ºå¼•æ“è¯»å–
     barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 
     vkCmdPipelineBarrier(
         cmd,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,  // Æğµã£ºÑÕÉ«Ğ´Èë½áÊø
-        VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,           // ÖÕµã£ºÃüÁîÁ÷Ä©Î²
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,  // èµ·ç‚¹ï¼šé¢œè‰²å†™å…¥ç»“æŸ
+        VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,           // ç»ˆç‚¹ï¼šå‘½ä»¤æµæœ«å°¾
         0,
         0, nullptr,
         0, nullptr,

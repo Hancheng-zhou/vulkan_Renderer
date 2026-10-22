@@ -1,4 +1,4 @@
-#include "Platform/Window.h"
+ï»¿#include "Platform/Window.h"
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 #include <stdexcept>
@@ -8,37 +8,37 @@ Window::Window(const WindowProps& props)
     , m_Height(props.Height)
     , m_Data(props)
 {
-    // glfwInit() ·µ»Ø int ¶ø²»ÊÇ bool£¨ÀúÊ·Ô­Òò£©£¬0 = Ê§°Ü
+    // glfwInit() è¿”å› int è€Œä¸æ˜¯ boolï¼ˆå†å²åŸå› ï¼‰ï¼Œ0 = å¤±è´¥
     if (glfwInit() == GLFW_FALSE)
     {
         throw std::runtime_error("[Window] glfwInit failed");
     }
 
-    // GLFW_NO_API£º²»´´½¨ÈÎºÎ OpenGL ÉÏÏÂÎÄ¡£
-    // ÕâÕıÊÇ"Ö»ÓÃ GLFW ¹Ü´°¿Ú¡¢Í¼ĞÎ API ×ß Vulkan"µÄ¿ª¹Ø¡£
+    // GLFW_NO_APIï¼šä¸åˆ›å»ºä»»ä½• OpenGL ä¸Šä¸‹æ–‡ã€‚
+    // è¿™æ­£æ˜¯"åªç”¨ GLFW ç®¡çª—å£ã€å›¾å½¢ API èµ° Vulkan"çš„å¼€å…³ã€‚
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    //ÔÊĞíresize
+    //å…è®¸resize
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
     m_Window = glfwCreateWindow(static_cast<int>(props.Width),
         static_cast<int>(props.Height),
         props.Title.c_str(),
-        nullptr,   // ²»ÓÃ monitor ²ÎÊı -> ´°¿Ú»¯
-        nullptr);  // ²»ÓëÆäËü´°¿Ú¹²ÏíÉÏÏÂÎÄ
+        nullptr,   // ä¸ç”¨ monitor å‚æ•° -> çª—å£åŒ–
+        nullptr);  // ä¸ä¸å…¶å®ƒçª—å£å…±äº«ä¸Šä¸‹æ–‡
 
     if (m_Window == nullptr)
     {
-        // Ê§°ÜÊ±Ò²ÒªÊÕÎ²£ºglfwInit ÒÑ¾­µ÷ÓÃ¹ı£¬
-        // ²»Åä¶Ô glfwTerminate ¾ÍÅ×Òì³££¬»áĞ¹Â© GLFW µÄ½ø³Ì¼¶×ÊÔ´
+        // å¤±è´¥æ—¶ä¹Ÿè¦æ”¶å°¾ï¼šglfwInit å·²ç»è°ƒç”¨è¿‡ï¼Œ
+        // ä¸é…å¯¹ glfwTerminate å°±æŠ›å¼‚å¸¸ï¼Œä¼šæ³„æ¼ GLFW çš„è¿›ç¨‹çº§èµ„æº
         glfwTerminate();
         throw std::runtime_error("[Window] glfwCreateWindow failed");
     }
 
-    // ---- È¡ framebuffer ³ß´ç -------------------------------------------
+    // ---- å– framebuffer å°ºå¯¸ -------------------------------------------
     //
-    // ¸²¸Çµô props ÀïµÄÂß¼­³ß´ç¡£
-    // Ëõ·Å 100% Ê±Á½ÕßÏàµÈ£¬µ«¸ß DPI ÆÁÉÏ²»µÈ£¬¶ø Vulkan Ö»ÈÏÏñËØ¡£
+    // è¦†ç›–æ‰ props é‡Œçš„é€»è¾‘å°ºå¯¸ã€‚
+    // ç¼©æ”¾ 100% æ—¶ä¸¤è€…ç›¸ç­‰ï¼Œä½†é«˜ DPI å±ä¸Šä¸ç­‰ï¼Œè€Œ Vulkan åªè®¤åƒç´ ã€‚
     int framebufferWidth = 0;
     int framebufferHeight = 0;
     glfwGetFramebufferSize(m_Window, &framebufferWidth, &framebufferHeight);
@@ -56,14 +56,14 @@ Window::~Window()
         m_Window = nullptr;
     }
 
-    // ¡¾±ØĞëÓë¹¹ÔìÀïµÄ glfwInit Åä¶Ô¡¿GLFW ÊÇ½ø³Ì¼¶×´Ì¬£¬
-    // Â©µôÕâÒ»´Î terminate£¬Ä³Ğ©Æ½Ì¨ÏÂÍË³öÊ±»á¿¨×¡»ò±¨´í
+    // ã€å¿…é¡»ä¸æ„é€ é‡Œçš„ glfwInit é…å¯¹ã€‘GLFW æ˜¯è¿›ç¨‹çº§çŠ¶æ€ï¼Œ
+    // æ¼æ‰è¿™ä¸€æ¬¡ terminateï¼ŒæŸäº›å¹³å°ä¸‹é€€å‡ºæ—¶ä¼šå¡ä½æˆ–æŠ¥é”™
     glfwTerminate();
 }
 
 bool Window::ShouldClose() const
 {
-    // glfwWindowShouldClose ·µ»Ø int£¨GLFW_TRUE/GLFW_FALSE£©
+    // glfwWindowShouldClose è¿”å› intï¼ˆGLFW_TRUE/GLFW_FALSEï¼‰
     return glfwWindowShouldClose(m_Window) == GLFW_TRUE;
 }
 
@@ -106,7 +106,7 @@ std::vector<const char*> Window::GetRequiredInstanceExtensions() const
         throw std::runtime_error("[Window] glfwGetRequiredInstanceExtensions returned nothing");
     }
 
-    // ¿½±´Ò»·İ¡£GLFW ÄÚ²¿ÄÇ¿éÊı×éµÄÉú´æÆÚ²»ÊôÓÚÎÒÃÇ£¬
-    // Ö±½Ó´æÖ¸ÕëµÄ»°£¬Ö®ºóÃ¿´Î·ÃÎÊ¶¼Òªµ£ĞÄËüÓĞÃ»ÓĞ±» GLFW ÊÍ·Å¡£
+    // æ‹·è´ä¸€ä»½ã€‚GLFW å†…éƒ¨é‚£å—æ•°ç»„çš„ç”Ÿå­˜æœŸä¸å±äºæˆ‘ä»¬ï¼Œ
+    // ç›´æ¥å­˜æŒ‡é’ˆçš„è¯ï¼Œä¹‹åæ¯æ¬¡è®¿é—®éƒ½è¦æ‹…å¿ƒå®ƒæœ‰æ²¡æœ‰è¢« GLFW é‡Šæ”¾ã€‚
     return std::vector<const char*>(extensions, extensions + extensionCount);
 }

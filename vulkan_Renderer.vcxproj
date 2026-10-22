@@ -65,7 +65,7 @@
       <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ExternalWarningLevel>Level3</ExternalWarningLevel>
     </ClCompile>
@@ -91,7 +91,7 @@
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ExternalWarningLevel>Level3</ExternalWarningLevel>
     </ClCompile>
@@ -106,27 +106,9 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\Application.cpp" />
-    <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\Platform\Window.cpp" />
-    <ClCompile Include="src\VkBackend\FrameResources.cpp" />
-    <ClCompile Include="src\VkBackend\VulkanAllocator.cpp" />
-    <ClCompile Include="src\VkBackend\VulkanBuffer.cpp" />
-    <ClCompile Include="src\VkBackend\VulkanCommandPool.cpp" />
-    <ClCompile Include="src\VkBackend\VulkanContext.cpp" />
-    <ClCompile Include="src\VkBackend\VulkanPipeline.cpp" />
-    <ClCompile Include="src\VkBackend\VulkanSwapchain.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="vendor\GLFW\GLFW.vcxproj">
-      <Project>{154B857C-0182-860D-AA6E-6C109684020F}</Project>
-    </ProjectReference>
-    <ProjectReference Include="vendor\stb_image\stb_image.vcxproj">
-      <Project>{3096E6B0-9C00-9B27-E53E-4CCD51E8787C}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
+    <ClInclude Include="src\Renderer\Mesh.h" />
     <ClInclude Include="src\Application.h" />
+    <ClInclude Include="src\Core\PrimitiveDesc.h" />
     <ClInclude Include="src\Core\Vertex.h" />
     <ClInclude Include="src\Platform\Window.h" />
     <ClInclude Include="src\VkBackend\FrameResources.h" />
@@ -138,10 +120,25 @@
     <ClInclude Include="src\VkBackend\VulkanSwapchain.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="ARCHITECTURE.md" />
-    <None Include="assets\CompileShaders.bat" />
-    <None Include="assets\shaders\Triangle.frag" />
-    <None Include="assets\shaders\Triangle.vert" />
+    <ClCompile Include="src\Renderer\Mesh.cpp" />
+    <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\Platform\Window.cpp" />
+    <ClCompile Include="src\VkBackend\FrameResources.cpp" />
+    <ClCompile Include="src\VkBackend\VulkanAllocator.cpp" />
+    <ClCompile Include="src\VkBackend\VulkanBuffer.cpp" />
+    <ClCompile Include="src\VkBackend\VulkanCommandPool.cpp" />
+    <ClCompile Include="src\VkBackend\VulkanContext.cpp" />
+    <ClCompile Include="src\VkBackend\VulkanPipeline.cpp" />
+    <ClCompile Include="src\VkBackend\VulkanSwapchain.cpp" />
+    <ClCompile Include="src\main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="vendor\GLFW\GLFW.vcxproj">
+      <Project>{154B857C-0182-860D-AA6E-6C109684020F}</Project>
+    </ProjectReference>
+    <ProjectReference Include="vendor\stb_image\stb_image.vcxproj">
+      <Project>{3096E6B0-9C00-9B27-E53E-4CCD51E8787C}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

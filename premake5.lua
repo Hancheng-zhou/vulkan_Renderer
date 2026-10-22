@@ -17,7 +17,14 @@ workspace "vulkan_Renderer"
 	filter "system:windows"
 		systemversion "latest"
 		staticruntime "on"
-		buildoptions { "/utf-8" }
+		-- /utf-8：源码统一按 UTF-8 处理
+		-- /FS：强制 PDB 写入串行化
+		--   【为什么必须有】下面的 multiprocessorcompile 会开多个 CL.EXE 进程，
+		--   它们共用同一个 vc143.pdb。不加 /FS 时并发写会直接报
+		--   "error C1041: 无法打开程序数据库"。
+		--   增量编译时文件少，常常只有一个进程，所以这个问题会潜伏很久，
+		--   直到某次全量重编译才突然爆出来。
+		buildoptions { "/utf-8", "/FS" }
 		-- 多核并行编译（/MP）。保留你 ZHC 项目里的优化配置
 		multiprocessorcompile "on"
 

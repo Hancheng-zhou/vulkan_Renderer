@@ -1,4 +1,4 @@
-#include "VkBackend/VulkanPipeline.h"
+ï»¿#include "VkBackend/VulkanPipeline.h"
 
 #include <cstdio>
 #include <fstream>
@@ -20,16 +20,16 @@ namespace
 
 VulkanPipeline::VulkanPipeline(const CreateInfo& info):m_Device(info.device)
 {
-    // ---- 1. ¼ÓÔØ²¢´´½¨ shader module -------------------------------------
+    // ---- 1. åŠ è½½å¹¶åˆ›å»º shader module -------------------------------------
     const std::vector<char> vertCode = ReadFile(info.vertexSpvPath);
     const std::vector<char> fragCode = ReadFile(info.fragSpvPath);
 
     VkShaderModule vertModule = CreateShaderModule(vertCode);
     VkShaderModule fragModule = CreateShaderModule(fragCode);
-    // ---- 2. Á½¸ö¿É±à³Ì½×¶Î -----------------------------------------------
+    // ---- 2. ä¸¤ä¸ªå¯ç¼–ç¨‹é˜¶æ®µ -----------------------------------------------
     //
-    //  pName = "main"£ºGLSL µÄÈë¿Úº¯ÊıÃû¡£Vulkan ÔÊĞíÈÎÒâÈë¿ÚÃû£¬
-    //  ÕâÀï±£³Ö´«Í³Ğ´·¨¡£
+    //  pName = "main"ï¼šGLSL çš„å…¥å£å‡½æ•°åã€‚Vulkan å…è®¸ä»»æ„å…¥å£åï¼Œ
+    //  è¿™é‡Œä¿æŒä¼ ç»Ÿå†™æ³•ã€‚
     VkPipelineShaderStageCreateInfo vertStage{};
     vertStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -42,51 +42,66 @@ VulkanPipeline::VulkanPipeline(const CreateInfo& info):m_Device(info.device)
     fragStage.module = fragModule;
     fragStage.pName = "main";
     const VkPipelineShaderStageCreateInfo shaderStages[] = { vertStage, fragStage };
-    // ---- 3. ¶¥µãÊäÈë£º¿Õ -------------------------------------------------
+    // ---- 3. é¡¶ç‚¹è¾“å…¥ï¼šç©º -------------------------------------------------
     //
-    //  ¡¾ÎªÊ²Ã´¿ÉÒÔÈ«¿Õ¡¿Èı½ÇĞÎµÄÎ»ÖÃÓÉ×ÅÉ«Æ÷ÀïµÄ gl_VertexID Éú³É£¬
-    //    ²»´ÓÈÎºÎ VkBuffer ¶ÁÊı¾İ¡£½×¶Î 5 ½Ó¶¥µã»º³åÊ±£¬
-    //    ÕâÀïÒªÌî bindingDescription ºÍ attributeDescriptions¡£
+    //  ã€ä¸ºä»€ä¹ˆå¯ä»¥å…¨ç©ºã€‘ä¸‰è§’å½¢çš„ä½ç½®ç”±ç€è‰²å™¨é‡Œçš„ gl_VertexID ç”Ÿæˆï¼Œ
+    //    ä¸ä»ä»»ä½• VkBuffer è¯»æ•°æ®ã€‚é˜¶æ®µ 5 æ¥é¡¶ç‚¹ç¼“å†²æ—¶ï¼Œ
+    //    è¿™é‡Œè¦å¡« bindingDescription å’Œ attributeDescriptionsã€‚
     VkPipelineVertexInputStateCreateInfo vertexInput{};
     vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInput.vertexBindingDescriptionCount = static_cast<uint32_t>(info.vertexBindings.size());
+    vertexInput.pVertexBindingDescriptions = info.vertexBindings.empty() ? nullptr : info.vertexBindings.data();
+    vertexInput.vertexAttributeDescriptionCount = static_cast<uint32_t>(info.vertexAttributes.size());
+    vertexInput.pVertexAttributeDescriptions = info.vertexAttributes.empty() ? nullptr : info.vertexAttributes.data();
+
+
     // vertexBindingDescriptionCount   = 0
     // vertexAttributeDescriptionCount = 0
-    // ---- 4. Í¼Ôª×°Åä -----------------------------------------------------
+    // ---- 4. å›¾å…ƒè£…é… -----------------------------------------------------
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    // primitiveRestartEnable ±£³Ö false£ºÖ»ÓĞ strip ÍØÆË²ÅĞèÒªËü
-    // ---- 5. ÊÓ¿Ú×´Ì¬£ºÊıÁ¿±ØĞëÌî£¬¾ßÌåÖµ¿¿¶¯Ì¬ÉèÖÃ -----------------------
+    // primitiveRestartEnable ä¿æŒ falseï¼šåªæœ‰ strip æ‹“æ‰‘æ‰éœ€è¦å®ƒ
+    // ---- 5. è§†å£çŠ¶æ€ï¼šæ•°é‡å¿…é¡»å¡«ï¼Œå…·ä½“å€¼é åŠ¨æ€è®¾ç½® -----------------------
     //
-    //  ¡¾¿Óµã¡¿¼´Ê¹ viewport/scissor ÊÇ¶¯Ì¬µÄ£¬ÕâÀïµÄ count Ò²±ØĞëÌî 1¡£
-    //    count Îª 0 »á±»Ğ£Ñé²ãÅĞÎª·Ç·¨£¨Ëü¼ì²éµÄÊÇ"ÉùÃ÷ÁËÒª¼¸¸ö"£©¡£
+    //  ã€å‘ç‚¹ã€‘å³ä½¿ viewport/scissor æ˜¯åŠ¨æ€çš„ï¼Œè¿™é‡Œçš„ count ä¹Ÿå¿…é¡»å¡« 1ã€‚
+    //    count ä¸º 0 ä¼šè¢«æ ¡éªŒå±‚åˆ¤ä¸ºéæ³•ï¼ˆå®ƒæ£€æŸ¥çš„æ˜¯"å£°æ˜äº†è¦å‡ ä¸ª"ï¼‰ã€‚
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportState.viewportCount = 1;
     viewportState.scissorCount = 1;
-    // pViewports / pScissors Áô¿Õ ¡ª¡ª ÓÉ vkCmdSetViewport / vkCmdSetScissor Ìá¹©
-    // ---- 6. ¹âÕ¤»¯ -------------------------------------------------------
+    // pViewports / pScissors ç•™ç©º â€”â€” ç”± vkCmdSetViewport / vkCmdSetScissor æä¾›
+    // ---- 6. å…‰æ …åŒ– -------------------------------------------------------
     VkPipelineRasterizationStateCreateInfo rasterizer{};
     rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
 
-    // ¡¾ÏÈ¹ØµôÃæÌŞ³ı¡¿Èı½ÇĞÎµÄ¶¥µãÈÆĞòÒ»µ©·´ÁË£¬¿ªÌŞ³ı¾Í»áÕû¸öÏûÊ§£¬
-    //   ¶øÇÒ²»»áÓĞÈÎºÎ±¨´í¡£½×¶Î 4 ÏÈ²»ÌŞ³ı£¬µÈÄÜ¿´¼ûÈı½ÇĞÎÔÙ´ò¿ª¡£
-    rasterizer.cullMode = VK_CULL_MODE_NONE;
-    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    // ---- é¢å‰”é™¤ ----------------------------------------------------------
+    //
+    // ã€Vulkan çš„ç»•åºå’Œ OpenGL ç›¸å â€”â€” è¿™æ˜¯æœ€å®¹æ˜“é…é”™çš„ä¸€å¯¹å‚æ•°ã€‘
+    //   Vulkan çš„ NDC é‡Œ y è½´ã€æœä¸‹ã€‘ï¼ŒOpenGL æœä¸Šã€‚
+    //   åŒä¸€ç»„"ä»å¤–éƒ¨çœ‹é€†æ—¶é’ˆ"çš„é¡¶ç‚¹ï¼Œåœ¨ Vulkan å±å¹•ç©ºé—´é‡Œçœ‹èµ·æ¥æ˜¯é¡ºæ—¶é’ˆã€‚
+    //
+    //   æˆ‘ä»¬çš„é¡¶ç‚¹æ•°æ®ç…§æ¬ ZHCï¼ˆæŒ‰ OpenGL çš„ CCW çº¦å®šæ’åˆ—ï¼‰ï¼Œ
+    //   æ‰€ä»¥å¿…é¡»å£°æ˜ FRONT_FACE_CLOCKWISEï¼Œé©±åŠ¨æ‰ä¼šæŠŠå®ƒè®¤ä½œæ­£é¢ã€‚
+    //
+    //   é…åçš„åæœæ˜¯é™é»˜çš„ï¼šç‰©ä½“æ•´ä¸ªæ¶ˆå¤±ï¼Œæˆ–è€…åªå‰©å†…éƒ¨çš„é¢ï¼Œ
+    //   æ ¡éªŒå±‚ä¸ä¼šæŠ¥ä»»ä½•é”™ã€‚
+    rasterizer.cullMode  = VK_CULL_MODE_BACK_BIT;
+    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
 
     rasterizer.depthClampEnable = VK_FALSE;
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.depthBiasEnable = VK_FALSE;
-    // ---- 7. ¶àÖØ²ÉÑù£º¹Ø£¨1 ¸ö²ÉÑùµã = ²»ÆôÓÃ MSAA£©----------------------
+    // ---- 7. å¤šé‡é‡‡æ ·ï¼šå…³ï¼ˆ1 ä¸ªé‡‡æ ·ç‚¹ = ä¸å¯ç”¨ MSAAï¼‰----------------------
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     multisampling.sampleShadingEnable = VK_FALSE;
-    // ---- 8. ÑÕÉ«»ìºÏ£ºÖ±½Ó¸²¸Ç -------------------------------------------
+    // ---- 8. é¢œè‰²æ··åˆï¼šç›´æ¥è¦†ç›– -------------------------------------------
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.blendEnable = VK_FALSE;   // ²»×ö»ìºÏ£¬fragment Êä³öÖ±½ÓĞ´
+    colorBlendAttachment.blendEnable = VK_FALSE;   // ä¸åšæ··åˆï¼Œfragment è¾“å‡ºç›´æ¥å†™
     colorBlendAttachment.colorWriteMask =
         VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
         VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -96,9 +111,9 @@ VulkanPipeline::VulkanPipeline(const CreateInfo& info):m_Device(info.device)
     colorBlending.logicOpEnable = VK_FALSE;
     colorBlending.attachmentCount = 1;
     colorBlending.pAttachments = &colorBlendAttachment;
-    // ---- 9. ¶¯Ì¬×´Ì¬ -----------------------------------------------------
+    // ---- 9. åŠ¨æ€çŠ¶æ€ -----------------------------------------------------
     //
-    //  ÉùÃ÷"ÕâÁ½ÏîÔÚÂ¼ÖÆÊ±ÉèÖÃ"¡£¹ÜÏßÀï²»¹Ì»¯ËüÃÇ£¬resize Ê±¾Í²»±ØÖØ½¨¡£
+    //  å£°æ˜"è¿™ä¸¤é¡¹åœ¨å½•åˆ¶æ—¶è®¾ç½®"ã€‚ç®¡çº¿é‡Œä¸å›ºåŒ–å®ƒä»¬ï¼Œresize æ—¶å°±ä¸å¿…é‡å»ºã€‚
     const VkDynamicState dynamicStates[] = {
         VK_DYNAMIC_STATE_VIEWPORT,
         VK_DYNAMIC_STATE_SCISSOR
@@ -109,34 +124,48 @@ VulkanPipeline::VulkanPipeline(const CreateInfo& info):m_Device(info.device)
     dynamicState.dynamicStateCount = 2;
     dynamicState.pDynamicStates = dynamicStates;
 
-    // ---- 10. ¹ÜÏß²¼¾Ö ----------------------------------------------------
+    // ---- 10. ç®¡çº¿å¸ƒå±€ ----------------------------------------------------
     //
-    //  ²¼¾ÖÃèÊö"shader ÄÜ·ÃÎÊÄÄĞ©Íâ²¿×ÊÔ´"£¨descriptor set / push constant£©¡£
-    //  ½×¶Î 4 Ê²Ã´¶¼²»ÓÃ£¬ËùÒÔÊÇ¿ÕµÄ¡£
-    //  ½×¶Î 6 ¼ÓÏà»ú¾ØÕóÊ±ÒªÍùÕâÀï¼Ó DescriptorSetLayout¡£
+    //  å¸ƒå±€æè¿°"shader èƒ½è®¿é—®å“ªäº›å¤–éƒ¨èµ„æº"ï¼ˆdescriptor set / push constantï¼‰ã€‚
     VkPipelineLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
+    // æ¨é€å¸¸é‡åŒºé—´ï¼šå‘Šè¯‰é©±åŠ¨"é¡¶ç‚¹é˜¶æ®µä¼šä» offset 0 è¯»è¿™ä¹ˆå¤šå­—èŠ‚"ã€‚
+    //
+    // ã€å¿…é¡»ä¸ shader çš„ layout(push_constant) å—å®Œå…¨ä¸€è‡´ã€‘
+    //   size å°äºå®é™…ä½¿ç”¨ -> æ ¡éªŒå±‚åœ¨ vkCmdPushConstants æ—¶æŠ¥è¶Šç•Œ
+    //   stageFlags å°‘äº† VERTEX -> é¡¶ç‚¹ç€è‰²å™¨é‡Œè¯»åˆ°çš„å€¼æ˜¯æœªå®šä¹‰çš„
+    VkPushConstantRange pushRange{};
+    if (info.pushConstantSize > 0)
+    {
+        pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        pushRange.offset     = 0;
+        pushRange.size       = info.pushConstantSize;
+
+        layoutInfo.pushConstantRangeCount = 1;
+        layoutInfo.pPushConstantRanges    = &pushRange;
+    }
+
     ThrowOnFailed(vkCreatePipelineLayout(m_Device, &layoutInfo, nullptr, &m_Layout),
         "vkCreatePipelineLayout");
-    // ---- 11. Dynamic Rendering µÄ¸½¼ş¸ñÊ½ÉùÃ÷ ----------------------------
+    // ---- 11. Dynamic Rendering çš„é™„ä»¶æ ¼å¼å£°æ˜ ----------------------------
     //
-    //  ¡¾ÕâÊÇÓë RenderPass °æ±¾×î´óµÄ²î±ğ¡¿
-    //    ´«Í³¹ÜÏß¿¿ VkGraphicsPipelineCreateInfo::renderPass ÖªµÀ¸½¼ş¸ñÊ½£»
-    //    ¶¯Ì¬äÖÈ¾Ã»ÓĞ RenderPass£¬Ö»ÄÜÍ¨¹ı pNext ¹ÒÕâ¸ö½á¹¹ÏÔÊ½¸æÖª¡£
+    //  ã€è¿™æ˜¯ä¸ RenderPass ç‰ˆæœ¬æœ€å¤§çš„å·®åˆ«ã€‘
+    //    ä¼ ç»Ÿç®¡çº¿é  VkGraphicsPipelineCreateInfo::renderPass çŸ¥é“é™„ä»¶æ ¼å¼ï¼›
+    //    åŠ¨æ€æ¸²æŸ“æ²¡æœ‰ RenderPassï¼Œåªèƒ½é€šè¿‡ pNext æŒ‚è¿™ä¸ªç»“æ„æ˜¾å¼å‘ŠçŸ¥ã€‚
     //
-    //    Â©µôËüµÄµäĞÍ±íÏÖ£ºvkCreateGraphicsPipelines ·µ»Ø
-    //    VK_ERROR_INVALID_SHADER_NV »òĞ£Ñé²ã±¨
-    //    "pColorAttachmentFormats is required"¡£
+    //    æ¼æ‰å®ƒçš„å…¸å‹è¡¨ç°ï¼švkCreateGraphicsPipelines è¿”å›
+    //    VK_ERROR_INVALID_SHADER_NV æˆ–æ ¡éªŒå±‚æŠ¥
+    //    "pColorAttachmentFormats is required"ã€‚
     VkPipelineRenderingCreateInfo renderingInfo{};
     renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
     renderingInfo.colorAttachmentCount = 1;
     renderingInfo.pColorAttachmentFormats = &info.colorFormat;
-    // depthAttachmentFormat / stencilAttachmentFormat Áô¿Õ£¨½×¶Î 8 ²ÅÓĞÉî¶È£©
-    // ---- 12. ×é×°²¢´´½¨ --------------------------------------------------
+    // depthAttachmentFormat / stencilAttachmentFormat ç•™ç©ºï¼ˆé˜¶æ®µ 8 æ‰æœ‰æ·±åº¦ï¼‰
+    // ---- 12. ç»„è£…å¹¶åˆ›å»º --------------------------------------------------
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.pNext = &renderingInfo;      // ¡û ¶¯Ì¬äÖÈ¾µÄ¹Ø¼ü
+    pipelineInfo.pNext = &renderingInfo;      // â† åŠ¨æ€æ¸²æŸ“çš„å…³é”®
     pipelineInfo.stageCount = 2;
     pipelineInfo.pStages = shaderStages;
     pipelineInfo.pVertexInputState = &vertexInput;
@@ -148,18 +177,18 @@ VulkanPipeline::VulkanPipeline(const CreateInfo& info):m_Device(info.device)
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = m_Layout;
 
-    // ¡¾±ØĞëÎª VK_NULL_HANDLE¡¿¶¯Ì¬äÖÈ¾²»ÓÃ RenderPass¡£
-    //   ÌîÁËÓĞĞ§¾ä±ú·´¶ø»áºÍ pNext ÀïµÄ RenderingCreateInfo ³åÍ»¡£
+    // ã€å¿…é¡»ä¸º VK_NULL_HANDLEã€‘åŠ¨æ€æ¸²æŸ“ä¸ç”¨ RenderPassã€‚
+    //   å¡«äº†æœ‰æ•ˆå¥æŸ„åè€Œä¼šå’Œ pNext é‡Œçš„ RenderingCreateInfo å†²çªã€‚
     pipelineInfo.renderPass = VK_NULL_HANDLE;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
     const VkResult createResult = vkCreateGraphicsPipelines(
         m_Device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_Pipeline);
-    // ---- 13. module ÓÃÍê¼´Ïú»Ù -------------------------------------------
+    // ---- 13. module ç”¨å®Œå³é”€æ¯ -------------------------------------------
     //
-    //  ¹ÜÏß´´½¨Ê±ÒÑ¾­°Ñ×Ö½ÚÂë"ÎüÊÕ"½øÈ¥ÁË£¬module ±¾Éí²»ÔÙĞèÒª¡£
-    //  ×¢Òâ¡¾ÎŞÂÛ³É¹¦Ê§°Ü¶¼ÒªÏú»Ù¡¿£¬·ñÔòÊ§°ÜÂ·¾¶»áĞ¹Â©¡£
+    //  ç®¡çº¿åˆ›å»ºæ—¶å·²ç»æŠŠå­—èŠ‚ç "å¸æ”¶"è¿›å»äº†ï¼Œmodule æœ¬èº«ä¸å†éœ€è¦ã€‚
+    //  æ³¨æ„ã€æ— è®ºæˆåŠŸå¤±è´¥éƒ½è¦é”€æ¯ã€‘ï¼Œå¦åˆ™å¤±è´¥è·¯å¾„ä¼šæ³„æ¼ã€‚
     vkDestroyShaderModule(m_Device, fragModule, nullptr);
     vkDestroyShaderModule(m_Device, vertModule, nullptr);
     if (createResult != VK_SUCCESS)
@@ -178,8 +207,8 @@ VulkanPipeline::VulkanPipeline(const CreateInfo& info):m_Device(info.device)
 
 VulkanPipeline::~VulkanPipeline()
 {
-    // Ïú»ÙË³Ğò£ºpipeline ÏÈ£¬layout ºó¡£
-    // layout ÊÇ pipeline µÄÒÀÀµ£¬·´¹ıÀ´»áÈÃ pipeline ÒıÓÃÒ»¸öÒÑÏú»ÙµÄ²¼¾Ö¡£
+    // é”€æ¯é¡ºåºï¼špipeline å…ˆï¼Œlayout åã€‚
+    // layout æ˜¯ pipeline çš„ä¾èµ–ï¼Œåè¿‡æ¥ä¼šè®© pipeline å¼•ç”¨ä¸€ä¸ªå·²é”€æ¯çš„å¸ƒå±€ã€‚
     if (m_Pipeline != VK_NULL_HANDLE)
     {
         vkDestroyPipeline(m_Device, m_Pipeline, nullptr);
@@ -210,8 +239,8 @@ std::vector<char> VulkanPipeline::ReadFile(const std::string path)
     file.read(buffer.data(), size);
     file.close();
 
-    // SPIR-V ±ØĞëÒÔÄ§Êı 0x07230203 ¿ªÍ·¡£¼ì²éÒ»´Î£¬ÄÜÔÚ"ÍüÁË±àÒë×ÅÉ«Æ÷"
-    // »ò"±àÒë³ÉÁË OpenGL ·½ÑÔ"Ê±Á¢¿Ì¸ø³öÈË»°£¬¶ø²»ÊÇÈÃÇı¶¯±¨¸öÌìÊé´íÎó¡£
+    // SPIR-V å¿…é¡»ä»¥é­”æ•° 0x07230203 å¼€å¤´ã€‚æ£€æŸ¥ä¸€æ¬¡ï¼Œèƒ½åœ¨"å¿˜äº†ç¼–è¯‘ç€è‰²å™¨"
+    // æˆ–"ç¼–è¯‘æˆäº† OpenGL æ–¹è¨€"æ—¶ç«‹åˆ»ç»™å‡ºäººè¯ï¼Œè€Œä¸æ˜¯è®©é©±åŠ¨æŠ¥ä¸ªå¤©ä¹¦é”™è¯¯ã€‚
     if (buffer.size() < 4)
     {
         throw std::runtime_error("[VulkanPipeline] shader too small: " + path);
@@ -238,9 +267,9 @@ VkShaderModule VulkanPipeline::CreateShaderModule(const std::vector<char>& code)
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = code.size();
 
-    // ¡¾ÎªÊ²Ã´Òª reinterpret_cast¡¿codeSize µÄµ¥Î»ÊÇ¡¾×Ö½Ú¡¿£¬
-    //   ¶ø pCode ÒªÇó uint32_t*¡£SPIR-V ¹æ·¶±£Ö¤³¤¶ÈÊÇ 4 µÄ±¶Êı£¬
-    //   ËùÒÔÕâ¸ö×ª»»ÊÇ°²È«µÄ£»µ«¾ø²»ÄÜ¼ÙÉè buffer µÄ¶ÔÆë±È uint32_t ºÃ¡£
+    // ã€ä¸ºä»€ä¹ˆè¦ reinterpret_castã€‘codeSize çš„å•ä½æ˜¯ã€å­—èŠ‚ã€‘ï¼Œ
+    //   è€Œ pCode è¦æ±‚ uint32_t*ã€‚SPIR-V è§„èŒƒä¿è¯é•¿åº¦æ˜¯ 4 çš„å€æ•°ï¼Œ
+    //   æ‰€ä»¥è¿™ä¸ªè½¬æ¢æ˜¯å®‰å…¨çš„ï¼›ä½†ç»ä¸èƒ½å‡è®¾ buffer çš„å¯¹é½æ¯” uint32_t å¥½ã€‚
     createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
     VkShaderModule module = VK_NULL_HANDLE;

@@ -1,4 +1,4 @@
-#include "VkBackend/VulkanContext.h"
+ï»¿#include "VkBackend/VulkanContext.h"
 #include <vulkan/vulkan_win32.h>
 #include <cstdio>
 #include <cstring>
@@ -7,23 +7,23 @@
 
 namespace 
 {
-    // ±ê×¼µÄ Khronos Ğ£Ñé²ã¡£SDK °²×°ºó×Ô´ø¡£
-    // ËüÊÇ"¿Ç"£¬ÄÚ²¿°ÑÀúÊ·ÉÏ¸÷¼Ò³§ÉÌµÄµ÷ÊÔ²ã
-    //£¨threading / parameter_validation / object_tracker / core_validation£©
-    // ºÏ²¢³ÉÁËÒ»²ã£¬ËùÒÔÖ»ĞèÒªÁĞÕâÒ»¸öÃû×Ö¡£
+    // æ ‡å‡†çš„ Khronos æ ¡éªŒå±‚ã€‚SDK å®‰è£…åè‡ªå¸¦ã€‚
+    // å®ƒæ˜¯"å£³"ï¼Œå†…éƒ¨æŠŠå†å²ä¸Šå„å®¶å‚å•†çš„è°ƒè¯•å±‚
+    //ï¼ˆthreading / parameter_validation / object_tracker / core_validationï¼‰
+    // åˆå¹¶æˆäº†ä¸€å±‚ï¼Œæ‰€ä»¥åªéœ€è¦åˆ—è¿™ä¸€ä¸ªåå­—ã€‚
     const char* const k_ValidationLayerName = "VK_LAYER_KHRONOS_validation";
 
     // ---------------------------------------------------------------------------
     //  vkCreateDebugUtilsMessengerEXT / vkDestroyDebugUtilsMessengerEXT
     //
-    //  ¡¾ÎªÊ²Ã´±ØĞëÊÖ¶¯È¡µØÖ·¡¿vulkan-1.lib Ö»µ¼³öºËĞÄ API µÄ·ûºÅ¡£
-    //    VK_EXT_debug_utils ÕâÀàÀ©Õ¹º¯ÊıµÄÊµÏÖ×°ÔÚÇı¶¯Àï£¬
-    //    ±ØĞëÏÈÓÃ vkGetInstanceProcAddr °´Ãû×ÖÏòÊµÀıÎÊ³öº¯ÊıÖ¸Õë¡£
-    //    Íü¼ÇÕâÒ»²½µÄ±íÏÖÊÇÁ´½ÓÆÚ±¨ unresolved external£¬
-    //    ÇÒ±¨µÄ×ÜÊÇ Create-Destroy ÕâÒ»¶Ô¡£
+    //  ã€ä¸ºä»€ä¹ˆå¿…é¡»æ‰‹åŠ¨å–åœ°å€ã€‘vulkan-1.lib åªå¯¼å‡ºæ ¸å¿ƒ API çš„ç¬¦å·ã€‚
+    //    VK_EXT_debug_utils è¿™ç±»æ‰©å±•å‡½æ•°çš„å®ç°è£…åœ¨é©±åŠ¨é‡Œï¼Œ
+    //    å¿…é¡»å…ˆç”¨ vkGetInstanceProcAddr æŒ‰åå­—å‘å®ä¾‹é—®å‡ºå‡½æ•°æŒ‡é’ˆã€‚
+    //    å¿˜è®°è¿™ä¸€æ­¥çš„è¡¨ç°æ˜¯é“¾æ¥æœŸæŠ¥ unresolved externalï¼Œ
+    //    ä¸”æŠ¥çš„æ€»æ˜¯ Create-Destroy è¿™ä¸€å¯¹ã€‚
     //
-    //  ¡¾ÎªÊ²Ã´ÊÇ×ÔÓÉº¯Êı²»ÊÇ³ÉÔ±¡¿ËüÃÇÊÇ¸ø Vulkan »Øµ÷ÓÃµÄ¹¤¾ß£¬
-    //    ²»·ÃÎÊ¶ÔÏó×´Ì¬£»·Å½øÄäÃûÃüÃû¿Õ¼ä±ÜÃâÎÛÈ¾È«¾Ö·ûºÅ±í¡£
+    //  ã€ä¸ºä»€ä¹ˆæ˜¯è‡ªç”±å‡½æ•°ä¸æ˜¯æˆå‘˜ã€‘å®ƒä»¬æ˜¯ç»™ Vulkan å›è°ƒç”¨çš„å·¥å…·ï¼Œ
+    //    ä¸è®¿é—®å¯¹è±¡çŠ¶æ€ï¼›æ”¾è¿›åŒ¿åå‘½åç©ºé—´é¿å…æ±¡æŸ“å…¨å±€ç¬¦å·è¡¨ã€‚
     // ---------------------------------------------------------------------------
     VkResult CreateDebugUtilsMessengerEXT(
         VkInstance instance,
@@ -69,12 +69,12 @@ namespace
 
 
 // ==================================================
-// ¹¹Ôìº¯Êı +Îö¹¹º¯Êı
+// æ„é€ å‡½æ•° +ææ„å‡½æ•°
 // ==================================================
 
 VulkanContext::VulkanContext(const ContextSpec& spec):m_Spec(spec)
 {
-    //°´ÕÕË³ĞòÖ´ĞĞ³õÊ¼»¯
+    //æŒ‰ç…§é¡ºåºæ‰§è¡Œåˆå§‹åŒ–
     CreateInstance();
     CreateSurface();
     SetupDebugMessenger();
@@ -85,14 +85,14 @@ VulkanContext::VulkanContext(const ContextSpec& spec):m_Spec(spec)
 VulkanContext::~VulkanContext()
 {
     // -----------------------------------------------------------------------
-   //  Ïú»ÙË³ĞòÑÏ¸ñÄæĞòÓÚ´´½¨£ºDevice -> DebugMessenger -> Instance
+   //  é”€æ¯é¡ºåºä¸¥æ ¼é€†åºäºåˆ›å»ºï¼šDevice -> DebugMessenger -> Instance
    //
-   //  ¡¾Device ±ØĞëÏÈÓÚ Instance¡¿Device ÊÇ´Ó Instance ÅÉÉú³öÀ´µÄ×ÊÔ´£¬
-   //    Instance Ò»Ïú»Ù£¬ÊôÓÚËüµÄ Device / Buffer / Image »áÈ«²¿Ê§Ğ§¡£
-   //    Vulkan ²»ÌæÄã×Ô¶¯ÇåÀíÒ²²»±¨´í£¬Ğ¹Â©»áÒ»Ö±ÍÏµ½½ø³ÌÍË³öÓÉ OS »ØÊÕ¡£
+   //  ã€Device å¿…é¡»å…ˆäº Instanceã€‘Device æ˜¯ä» Instance æ´¾ç”Ÿå‡ºæ¥çš„èµ„æºï¼Œ
+   //    Instance ä¸€é”€æ¯ï¼Œå±äºå®ƒçš„ Device / Buffer / Image ä¼šå…¨éƒ¨å¤±æ•ˆã€‚
+   //    Vulkan ä¸æ›¿ä½ è‡ªåŠ¨æ¸…ç†ä¹Ÿä¸æŠ¥é”™ï¼Œæ³„æ¼ä¼šä¸€ç›´æ‹–åˆ°è¿›ç¨‹é€€å‡ºç”± OS å›æ”¶ã€‚
    //
-   //  ¡¾DebugMessenger ·ÅÔÚ Instance Ö®Ç°¡¿Ëü¹ÒÔÚ Instance ÉÏ£¬
-   //    ÕâÑù°²ÅÅÄÜÈÃËü²¶»ñµ½"instance Ïú»ÙÆÚ¼ä"·¢³öµÄĞ£ÑéÏûÏ¢¡£
+   //  ã€DebugMessenger æ”¾åœ¨ Instance ä¹‹å‰ã€‘å®ƒæŒ‚åœ¨ Instance ä¸Šï¼Œ
+   //    è¿™æ ·å®‰æ’èƒ½è®©å®ƒæ•è·åˆ°"instance é”€æ¯æœŸé—´"å‘å‡ºçš„æ ¡éªŒæ¶ˆæ¯ã€‚
    // -----------------------------------------------------------------------
     std::printf("[~VulkanContext] destroying device\n");
     if (m_Device != VK_NULL_HANDLE)
@@ -118,7 +118,7 @@ VulkanContext::~VulkanContext()
 
 void VulkanContext::PrintDeviceInfo() const
 {
-    // %s Ö±½Ó¿ÉÓÃ£ºdeviceName ÊÇ¹Ì¶¨³¤¶ÈµÄ char Êı×é£¬±£Ö¤ÒÔ \0 ½áÎ²¡£
+    // %s ç›´æ¥å¯ç”¨ï¼šdeviceName æ˜¯å›ºå®šé•¿åº¦çš„ char æ•°ç»„ï¼Œä¿è¯ä»¥ \0 ç»“å°¾ã€‚
     std::printf("[Vulkan] API version   : %u.%u.%u\n",
         VK_API_VERSION_MAJOR(m_DeviceProperties.apiVersion),
         VK_API_VERSION_MINOR(m_DeviceProperties.apiVersion),
@@ -132,13 +132,13 @@ void VulkanContext::PrintDeviceInfo() const
     std::printf("[Vulkan] Present queue  : family %u\n", GetPresentFamily());
 }
 // ===========================================================================
-//  1. Instance ¡ª¡ª "±¾³ÌĞòÁ¬½Óµ½ÁË Vulkan ÔËĞĞ¿â"
+//  1. Instance â€”â€” "æœ¬ç¨‹åºè¿æ¥åˆ°äº† Vulkan è¿è¡Œåº“"
 // ===========================================================================
 bool VulkanContext::CheckValidationLayerSupport()
 {
-    // ÏÈ¿´±¾»ú×°ÁËÄÄĞ©²ã¡£²»²éÖ±½ÓÓÃ»áµÃµ½
-    // vkCreateInstance ·µ»Ø VK_ERROR_LAYER_NOT_PRESENT¡£
-    //¾­µä¶ş´Îµ÷ÓÃ Ò»´ÎÖªµÀ¸öÊı ¶ş´Î¸ù¾İ¸öÊı·ÖÅäÄÚ´æ
+    // å…ˆçœ‹æœ¬æœºè£…äº†å“ªäº›å±‚ã€‚ä¸æŸ¥ç›´æ¥ç”¨ä¼šå¾—åˆ°
+    // vkCreateInstance è¿”å› VK_ERROR_LAYER_NOT_PRESENTã€‚
+    //ç»å…¸äºŒæ¬¡è°ƒç”¨ ä¸€æ¬¡çŸ¥é“ä¸ªæ•° äºŒæ¬¡æ ¹æ®ä¸ªæ•°åˆ†é…å†…å­˜
     uint32_t layerCount = 0;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
     std::vector<VkLayerProperties> availableLayers(layerCount);
@@ -166,10 +166,10 @@ VkBool32 VKAPI_CALL VulkanContext::DebugCallback(
         isError ? " ERROR" : "",
         callbackData->pMessage);
 
-    // ¡¾·µ»ØÖµÊÇ¸øÇı¶¯¿´µÄ¡¿VK_FALSE = "Õâ¸ö´íÎóÃ»ÓĞµ¼ÖÂ»Øµ÷Ê§°Ü£¬¼ÌĞøÖ´ĞĞ"¡£
-    // Èô·µ»Ø VK_TRUE£¬³ö´íµÄ vkXxx µ÷ÓÃ»á±»ÖĞ¶Ï²¢·µ»Ø
-    // VK_ERROR_VALIDATION_FAILED_EXT¡£Ò»°ã×ö·¨¶¼ÊÇ±£³Ö FALSE ¡ª¡ª
-    // ÈÃÈÕÖ¾´ò³öÀ´£¬¶ø²»ÊÇÈÃ³ÌĞòµ±³¡ê©È»¶øÖ¹¡£
+    // ã€è¿”å›å€¼æ˜¯ç»™é©±åŠ¨çœ‹çš„ã€‘VK_FALSE = "è¿™ä¸ªé”™è¯¯æ²¡æœ‰å¯¼è‡´å›è°ƒå¤±è´¥ï¼Œç»§ç»­æ‰§è¡Œ"ã€‚
+    // è‹¥è¿”å› VK_TRUEï¼Œå‡ºé”™çš„ vkXxx è°ƒç”¨ä¼šè¢«ä¸­æ–­å¹¶è¿”å›
+    // VK_ERROR_VALIDATION_FAILED_EXTã€‚ä¸€èˆ¬åšæ³•éƒ½æ˜¯ä¿æŒ FALSE â€”â€”
+    // è®©æ—¥å¿—æ‰“å‡ºæ¥ï¼Œè€Œä¸æ˜¯è®©ç¨‹åºå½“åœºæˆ›ç„¶è€Œæ­¢ã€‚
     return VK_FALSE;
 }
 
@@ -179,7 +179,7 @@ void VulkanContext::CreateInstance()
         throw std::runtime_error("[Vulkan] validation layer requested but not available: "
             + std::string(k_ValidationLayerName));
     }
-    // ---- applicationInfo£º¸æËßÇı¶¯"ÎÒÊÇË­¡¢ÎÒÒªÄÄ¸ö°æ±¾µÄ Vulkan" --------
+    // ---- applicationInfoï¼šå‘Šè¯‰é©±åŠ¨"æˆ‘æ˜¯è°ã€æˆ‘è¦å“ªä¸ªç‰ˆæœ¬çš„ Vulkan" --------
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = m_Spec.ApplicationName.c_str();
@@ -187,40 +187,40 @@ void VulkanContext::CreateInstance()
     appInfo.pEngineName = "No Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 
-    // ¡¾ÕâÀï±ØĞëÊÇ 1.3¡¿Õû¸öÏîÄ¿ÒÀÀµ Dynamic Rendering£¬
-    //   ËüÊÇ Vulkan 1.3 µÄºËĞÄÌØĞÔ£¨1.2 Ê±´úÒª¶îÍâ¼ÓÔØ VK_KHR_dynamic_rendering£©¡£
-    //   Ìî³É 1.2 »áÈÃºóĞøµÄ vkCmdBeginRendering ÎŞº¯Êı¿ÉÓÃ¡£
+    // ã€è¿™é‡Œå¿…é¡»æ˜¯ 1.3ã€‘æ•´ä¸ªé¡¹ç›®ä¾èµ– Dynamic Renderingï¼Œ
+    //   å®ƒæ˜¯ Vulkan 1.3 çš„æ ¸å¿ƒç‰¹æ€§ï¼ˆ1.2 æ—¶ä»£è¦é¢å¤–åŠ è½½ VK_KHR_dynamic_renderingï¼‰ã€‚
+    //   å¡«æˆ 1.2 ä¼šè®©åç»­çš„ vkCmdBeginRendering æ— å‡½æ•°å¯ç”¨ã€‚
     appInfo.apiVersion = VK_API_VERSION_1_3;
 
     // ---- instanceCreateInfo ----------------------------------------------
     VkInstanceCreateInfo instanceCreateInfo{};
     instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceCreateInfo.pApplicationInfo = &appInfo;
-    // À©Õ¹ÁĞ±í = µ÷ÓÃ·½ÒªµÄ£¨GLFW µÄ window ÏµÍ³½Ó¿Ú£©+ µ÷ÊÔÓÃÀ©Õ¹
+    // æ‰©å±•åˆ—è¡¨ = è°ƒç”¨æ–¹è¦çš„ï¼ˆGLFW çš„ window ç³»ç»Ÿæ¥å£ï¼‰+ è°ƒè¯•ç”¨æ‰©å±•
     std::vector<const char*> extensions = m_Spec.RequiredInstanceExtensions;
     if (m_Spec.EnableValidationLayers)
     {
-        // VK_EXT_debug_utils£º°ÑĞ£Ñé²ã²úÉúµÄÏûÏ¢Í¶µİ»ØÎÒÃÇµÄ»Øµ÷º¯Êı¡£
-        // Ã»ÓĞËü£¬Ğ£Ñé²ãÈÔÈ»ÔÚ¼ì²é£¬µ«ÄãÊ²Ã´Ò²¿´²»µ½¡£
+        // VK_EXT_debug_utilsï¼šæŠŠæ ¡éªŒå±‚äº§ç”Ÿçš„æ¶ˆæ¯æŠ•é€’å›æˆ‘ä»¬çš„å›è°ƒå‡½æ•°ã€‚
+        // æ²¡æœ‰å®ƒï¼Œæ ¡éªŒå±‚ä»ç„¶åœ¨æ£€æŸ¥ï¼Œä½†ä½ ä»€ä¹ˆä¹Ÿçœ‹ä¸åˆ°ã€‚
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
     instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     instanceCreateInfo.ppEnabledExtensionNames = extensions.data();
-    // ---- µ÷ÊÔ Messenger µÄ´´½¨ĞÅÏ¢ ----------------------------------------
+    // ---- è°ƒè¯• Messenger çš„åˆ›å»ºä¿¡æ¯ ----------------------------------------
     //
-    // ¡¾ÎªÊ²Ã´ÒªÔÚÕâÀïÔÙ×¼±¸Ò»·İ¡¿
-    //   Õı³£Á÷³ÌÊÇ Instance ½¨ºÃºóÔÙ SetupDebugMessenger()¡£
-    //   µ«ÄÇÑùÖ»ÄÜ²¶»ñ"instance ´´½¨Ö®ºó"µÄÏûÏ¢ ¡ª¡ª
-    //   ¶ø vkCreateInstance / vkDestroyInstance ×ÔÉíµÄ±¨´íÕıÊÇ×îÏë¿´µ½µÄÒ»Àà¡£
-    //   °ÑËü¹Òµ½ instanceCreateInfo.pNext ÉÏ£¬ÕâÁ½¸öµ÷ÓÃÆÚ¼äµÄÏûÏ¢Ò²ÄÜ±»²¶»ñ¡£
+    // ã€ä¸ºä»€ä¹ˆè¦åœ¨è¿™é‡Œå†å‡†å¤‡ä¸€ä»½ã€‘
+    //   æ­£å¸¸æµç¨‹æ˜¯ Instance å»ºå¥½åå† SetupDebugMessenger()ã€‚
+    //   ä½†é‚£æ ·åªèƒ½æ•è·"instance åˆ›å»ºä¹‹å"çš„æ¶ˆæ¯ â€”â€”
+    //   è€Œ vkCreateInstance / vkDestroyInstance è‡ªèº«çš„æŠ¥é”™æ­£æ˜¯æœ€æƒ³çœ‹åˆ°çš„ä¸€ç±»ã€‚
+    //   æŠŠå®ƒæŒ‚åˆ° instanceCreateInfo.pNext ä¸Šï¼Œè¿™ä¸¤ä¸ªè°ƒç”¨æœŸé—´çš„æ¶ˆæ¯ä¹Ÿèƒ½è¢«æ•è·ã€‚
     //
-    // ¡¾ÕâÀïÖ»¶©ÔÄ WARNING/ERROR£¬²»ÊÕÕ­Ò²ĞĞµ«¼«³³¡¿
-    //   Loader ÔÚ vkCreateInstance Ç°ºó»áÏò±¾»Øµ÷Çãµ¹´óÁ¿ VERBOSE/INFO ÏûÏ¢
-    //   £¨±éÀú×¢²á±í¡¢µÇ¼Ç»úÆ÷ÉÏÃ¿Ò»¸ö²ã¡¢´òÓ¡²ãÁ´ callstack£©£¬
-    //   ÕâĞ©ÊÇ Loader ×Ô¼ºµÄĞĞÎª£¬Óë´úÂë¶Ô´íÎŞ¹Ø£¬»á°ÑÕæÕıÒª¿´µÄÏûÏ¢ÑÍµô¡£
-    //   ´ú¼ÛÊÇ instance ´´½¨/Ïú»ÙÆÚ¼äµÄ VERBOSE/INFO Ò²¿´²»µ½ ¡ª¡ª µ«ÄÇĞ©
-    //   ¼¸ºõÈ«ÊÇÉÏÃæËµµÄµÇ¼ÇĞÅÏ¢£¬Ã»ÓĞÕï¶Ï¼ÛÖµ¡£
-    //   Óë SetupDebugMessenger ±£³ÖÍ¬Ò»Ì× severity£¬ĞĞÎª¸üÒ»ÖÂ¡£
+    // ã€è¿™é‡Œåªè®¢é˜… WARNING/ERRORï¼Œä¸æ”¶çª„ä¹Ÿè¡Œä½†æåµã€‘
+    //   Loader åœ¨ vkCreateInstance å‰åä¼šå‘æœ¬å›è°ƒå€¾å€’å¤§é‡ VERBOSE/INFO æ¶ˆæ¯
+    //   ï¼ˆéå†æ³¨å†Œè¡¨ã€ç™»è®°æœºå™¨ä¸Šæ¯ä¸€ä¸ªå±‚ã€æ‰“å°å±‚é“¾ callstackï¼‰ï¼Œ
+    //   è¿™äº›æ˜¯ Loader è‡ªå·±çš„è¡Œä¸ºï¼Œä¸ä»£ç å¯¹é”™æ— å…³ï¼Œä¼šæŠŠçœŸæ­£è¦çœ‹çš„æ¶ˆæ¯æ·¹æ‰ã€‚
+    //   ä»£ä»·æ˜¯ instance åˆ›å»º/é”€æ¯æœŸé—´çš„ VERBOSE/INFO ä¹Ÿçœ‹ä¸åˆ° â€”â€” ä½†é‚£äº›
+    //   å‡ ä¹å…¨æ˜¯ä¸Šé¢è¯´çš„ç™»è®°ä¿¡æ¯ï¼Œæ²¡æœ‰è¯Šæ–­ä»·å€¼ã€‚
+    //   ä¸ SetupDebugMessenger ä¿æŒåŒä¸€å¥— severityï¼Œè¡Œä¸ºæ›´ä¸€è‡´ã€‚
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -247,19 +247,19 @@ void VulkanContext::CreateSurface()
 {
     if (m_Spec.NativeWindowHandle == nullptr)
     {
-        //ÀëÆÁÄ£Ê½£ºÃ»ÓĞ´°¿Ú¿ÉÒÔ³ÊÏÖ ²»ÒªÇópresent¶ÓÁĞ
+        //ç¦»å±æ¨¡å¼ï¼šæ²¡æœ‰çª—å£å¯ä»¥å‘ˆç° ä¸è¦æ±‚presenté˜Ÿåˆ—
         m_QueueFamilies.RequiresPresent = false;
         return;
     }
-    // ¡¾ÎªÊ²Ã´ÓÃ VK_KHR_win32_surface ¶ø²»ÊÇ glfwCreateWindowSurface¡¿
-    //   GLFW ÄÇ¸öº¯ÊıĞèÒª GLFWwindow*£¬»á±ÆµÃ VkBackend ²ãÒÀÀµ GLFW ¡ª¡ª
-    //   Î¥·´"VkBackend ²»Åö´°¿Ú¿â"µÄÌúÂÉ¡£
-    //   ¸ÄÓÃÔ­Éú Win32 surface£ºÕâÀïÖ»ĞèÒª HWND£¬ÓÉ Application ´Ó
-    //   Window È¡³öºó¾­ ContextSpec ´«½øÀ´¡£ÒÀÀµ·½Ïò±£³Ö¸É¾»¡£
+    // ã€ä¸ºä»€ä¹ˆç”¨ VK_KHR_win32_surface è€Œä¸æ˜¯ glfwCreateWindowSurfaceã€‘
+    //   GLFW é‚£ä¸ªå‡½æ•°éœ€è¦ GLFWwindow*ï¼Œä¼šé€¼å¾— VkBackend å±‚ä¾èµ– GLFW â€”â€”
+    //   è¿å"VkBackend ä¸ç¢°çª—å£åº“"çš„é“å¾‹ã€‚
+    //   æ”¹ç”¨åŸç”Ÿ Win32 surfaceï¼šè¿™é‡Œåªéœ€è¦ HWNDï¼Œç”± Application ä»
+    //   Window å–å‡ºåç» ContextSpec ä¼ è¿›æ¥ã€‚ä¾èµ–æ–¹å‘ä¿æŒå¹²å‡€ã€‚
     //
-    // ¡¾hwnd + hinstance¡¿Win32 surface µÄÁ½¸ö±ØÒª²ÎÊı¡£
-    //   hinstance ´«µ±Ç°Ä£¿é¾ä±ú¼´¿É£¨GetModuleHandle(nullptr)£©£¬
-    //   Vulkan Ö»ÓÃËü×öÄÚ²¿±êÊ¶£¬²»ÓÃÓÚ´´½¨´°¿Ú¡£
+    // ã€hwnd + hinstanceã€‘Win32 surface çš„ä¸¤ä¸ªå¿…è¦å‚æ•°ã€‚
+    //   hinstance ä¼ å½“å‰æ¨¡å—å¥æŸ„å³å¯ï¼ˆGetModuleHandle(nullptr)ï¼‰ï¼Œ
+    //   Vulkan åªç”¨å®ƒåšå†…éƒ¨æ ‡è¯†ï¼Œä¸ç”¨äºåˆ›å»ºçª—å£ã€‚
     VkWin32SurfaceCreateInfoKHR surfaceInfo{};
     surfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     surfaceInfo.hwnd = reinterpret_cast<HWND>(m_Spec.NativeWindowHandle);
@@ -290,7 +290,7 @@ void VulkanContext::SetupDebugMessenger()
 
 
 // ===========================================================================
-//  2. PhysicalDevice ¡ª¡ª Ò»Ì¨ÕæÊµµÄ GPU£¬Ö»ÄÜ¡¾Ö»¶Á²éÑ¯¡¿
+//  2. PhysicalDevice â€”â€” ä¸€å°çœŸå®çš„ GPUï¼Œåªèƒ½ã€åªè¯»æŸ¥è¯¢ã€‘
 // ===========================================================================
 
 QueueFamilyIndices VulkanContext::FindQueueFamilies(VkPhysicalDevice device,VkSurfaceKHR surface) const
@@ -308,8 +308,8 @@ QueueFamilyIndices VulkanContext::FindQueueFamilies(VkPhysicalDevice device,VkSu
         {
             indices.GraphicsFamily = i;
         }
-        // present Ö§³ÖÊÇ¡¾°´ surface ÎÊ¡¿µÄ£¬²»ÊÇÉè±¸µÄ¹ÌÓĞÊôĞÔ£º
-        // Í¬Ò»¸ö¶ÓÁĞ×å¿ÉÄÜ¶ÔÄ³¸ö surface ÄÜ³ÊÏÖ¡¢¶ÔÁíÒ»¸ö²»ÄÜ¡£
+        // present æ”¯æŒæ˜¯ã€æŒ‰ surface é—®ã€‘çš„ï¼Œä¸æ˜¯è®¾å¤‡çš„å›ºæœ‰å±æ€§ï¼š
+        // åŒä¸€ä¸ªé˜Ÿåˆ—æ—å¯èƒ½å¯¹æŸä¸ª surface èƒ½å‘ˆç°ã€å¯¹å¦ä¸€ä¸ªä¸èƒ½ã€‚
         if (surface != VK_NULL_HANDLE)
         {
             VkBool32 canPresent = VK_FALSE;
@@ -329,29 +329,29 @@ QueueFamilyIndices VulkanContext::FindQueueFamilies(VkPhysicalDevice device,VkSu
 
 bool VulkanContext::IsDeviceSuitable(VkPhysicalDevice device) const
 {
-    // ---- Ó²ĞÔÃÅ¼÷ --------------------------------------------------------
+    // ---- ç¡¬æ€§é—¨æ§› --------------------------------------------------------
     VkPhysicalDeviceProperties deviceProperties;
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
 
-    // Õû¸öÏîÄ¿µÄ Pass ¶¼½¨Á¢ÔÚ Dynamic Rendering Ö®ÉÏ£¬ËüÊÇ Vulkan 1.3 ºËĞÄÌØĞÔ¡£
-    // Çı¶¯±¨¸æµÍÓÚ 1.3 ¾ÍÅÅ³ıÕâÕÅ¿¨¡£
+    // æ•´ä¸ªé¡¹ç›®çš„ Pass éƒ½å»ºç«‹åœ¨ Dynamic Rendering ä¹‹ä¸Šï¼Œå®ƒæ˜¯ Vulkan 1.3 æ ¸å¿ƒç‰¹æ€§ã€‚
+    // é©±åŠ¨æŠ¥å‘Šä½äº 1.3 å°±æ’é™¤è¿™å¼ å¡ã€‚
     //
-    // ¡¾Êµ²âÈİÒ×²ÈµÄµã¡¿ºÜ¶à»úÆ÷ÉÏÓĞÁ½ÕÅ Vulkan Éè±¸£¨¼¯ÏÔ + ¶ÀÏÔ£©£¬
-    //   ÆäÖĞÒ»ÕÅ¿ÉÄÜÍ£ÔÚ 1.2¡£ÕâÀïÏÔÊ½¹ıÂË£¬³ÌĞò²Å»á×Ô¶¯Ñ¡µ½¿ÉÓÃµÄÄÇÕÅ£¬
-    //   ¶ø²»ÊÇÔÚ vkCmdBeginRendering ÉÏÄªÃû±ÀÀ£¡£
+    // ã€å®æµ‹å®¹æ˜“è¸©çš„ç‚¹ã€‘å¾ˆå¤šæœºå™¨ä¸Šæœ‰ä¸¤å¼  Vulkan è®¾å¤‡ï¼ˆé›†æ˜¾ + ç‹¬æ˜¾ï¼‰ï¼Œ
+    //   å…¶ä¸­ä¸€å¼ å¯èƒ½åœåœ¨ 1.2ã€‚è¿™é‡Œæ˜¾å¼è¿‡æ»¤ï¼Œç¨‹åºæ‰ä¼šè‡ªåŠ¨é€‰åˆ°å¯ç”¨çš„é‚£å¼ ï¼Œ
+    //   è€Œä¸æ˜¯åœ¨ vkCmdBeginRendering ä¸Šè«åå´©æºƒã€‚
     if (deviceProperties.apiVersion < VK_API_VERSION_1_3)
     {
         return false;
     }
-    // ---- ²éÑ¯ 1.3 ÌØĞÔÖ§³ÖÇé¿ö -------------------------------------------
+    // ---- æŸ¥è¯¢ 1.3 ç‰¹æ€§æ”¯æŒæƒ…å†µ -------------------------------------------
     //
-    //  ¡¾ÎªÊ²Ã´Òªµ¥¶À²é¡¿apiVersion >= 1.3 Ö»ËµÃ÷"Çı¶¯ÊµÏÖÁË 1.3 µÄº¯Êı"£¬
-    //  ²»´ú±í"Õâ¸öÌØ¶¨ÌØĞÔ±»Ó²¼şÖ§³Ö"¡£Á½ÕßÊÇ¶ÀÁ¢µÄÁ½²ã£º
-    //    °æ±¾  = ÓĞÄÄĞ© API ¿ÉÒÔµ÷
-    //    ÌØĞÔ  = Ó²¼şÄÜ²»ÄÜÕæµÄ×öÕâ¼şÊÂ
+    //  ã€ä¸ºä»€ä¹ˆè¦å•ç‹¬æŸ¥ã€‘apiVersion >= 1.3 åªè¯´æ˜"é©±åŠ¨å®ç°äº† 1.3 çš„å‡½æ•°"ï¼Œ
+    //  ä¸ä»£è¡¨"è¿™ä¸ªç‰¹å®šç‰¹æ€§è¢«ç¡¬ä»¶æ”¯æŒ"ã€‚ä¸¤è€…æ˜¯ç‹¬ç«‹çš„ä¸¤å±‚ï¼š
+    //    ç‰ˆæœ¬  = æœ‰å“ªäº› API å¯ä»¥è°ƒ
+    //    ç‰¹æ€§  = ç¡¬ä»¶èƒ½ä¸èƒ½çœŸçš„åšè¿™ä»¶äº‹
     //
-    //  ²éÑ¯ĞèÒªÁ½²ã½á¹¹£ºFeatures2 ÊÇÍâ¿Ç£¬pNext ¹Ò¾ßÌå°æ±¾µÄ½á¹¹¡£
-    //  ÕâÊÇ Vulkan 1.1 Ö®ºóËùÓĞÌØĞÔ²éÑ¯µÄÍ³Ò»Ä£Ê½¡£
+    //  æŸ¥è¯¢éœ€è¦ä¸¤å±‚ç»“æ„ï¼šFeatures2 æ˜¯å¤–å£³ï¼ŒpNext æŒ‚å…·ä½“ç‰ˆæœ¬çš„ç»“æ„ã€‚
+    //  è¿™æ˜¯ Vulkan 1.1 ä¹‹åæ‰€æœ‰ç‰¹æ€§æŸ¥è¯¢çš„ç»Ÿä¸€æ¨¡å¼ã€‚
     VkPhysicalDeviceVulkan13Features supported13{};
     supported13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
 
@@ -361,7 +361,7 @@ bool VulkanContext::IsDeviceSuitable(VkPhysicalDevice device) const
 
     vkGetPhysicalDeviceFeatures2(device, &features2);
 
-    // Õû¸öäÖÈ¾¹ÜÏß¶¼½¨Á¢ÔÚ Dynamic Rendering ÉÏ£¬Ó²¼ş²»Ö§³Ö¾ÍÃ»·¨ÅÜ
+    // æ•´ä¸ªæ¸²æŸ“ç®¡çº¿éƒ½å»ºç«‹åœ¨ Dynamic Rendering ä¸Šï¼Œç¡¬ä»¶ä¸æ”¯æŒå°±æ²¡æ³•è·‘
     if (supported13.dynamicRendering != VK_TRUE)
     {
         return false;
@@ -374,23 +374,23 @@ bool VulkanContext::IsDeviceSuitable(VkPhysicalDevice device) const
 
 int VulkanContext::RateDeviceSuitability(VkPhysicalDevice device) const
 {
-    // ÓÃ"´ò·ÖÅÅĞò"¶ø²»ÊÇ"È¡µÚÒ»¸ö·ûºÏµÄ"£º
-    //   Ë«ÏÔ¿¨»úÆ÷ÉÏ vkEnumeratePhysicalDevices µÄ·µ»ØË³ĞòÍêÈ«ÓÉÇı¶¯¾ö¶¨£¬
-    //   µÚÒ»¸ö³£³£ÊÇ¼¯³ÉÏÔ¿¨¡£ÆÀ·ÖÄÜÈÃ¶ÀÏÔÎÈ¶¨ÅÅµ½Ç°Ãæ¡£
+    // ç”¨"æ‰“åˆ†æ’åº"è€Œä¸æ˜¯"å–ç¬¬ä¸€ä¸ªç¬¦åˆçš„"ï¼š
+    //   åŒæ˜¾å¡æœºå™¨ä¸Š vkEnumeratePhysicalDevices çš„è¿”å›é¡ºåºå®Œå…¨ç”±é©±åŠ¨å†³å®šï¼Œ
+    //   ç¬¬ä¸€ä¸ªå¸¸å¸¸æ˜¯é›†æˆæ˜¾å¡ã€‚è¯„åˆ†èƒ½è®©ç‹¬æ˜¾ç¨³å®šæ’åˆ°å‰é¢ã€‚
     VkPhysicalDeviceProperties deviceProperties;
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
 
     int score = 0;
 
-    // ¶ÀÏÔ +1000£¬Õâ¸öÈ¨ÖØ×ãÒÔÑ¹¹ıÏÂÃæËùÓĞ¼Ó·ÖÏî¡£
-    // ºËÏÔÍ¨³£Ô¶µÍÓÚ 1000£¬ËùÒÔÁ½ÕßÍ¬Ê±´æÔÚÊ±¶ÀÏÔ±ØÊ¤¡£
+    // ç‹¬æ˜¾ +1000ï¼Œè¿™ä¸ªæƒé‡è¶³ä»¥å‹è¿‡ä¸‹é¢æ‰€æœ‰åŠ åˆ†é¡¹ã€‚
+    // æ ¸æ˜¾é€šå¸¸è¿œä½äº 1000ï¼Œæ‰€ä»¥ä¸¤è€…åŒæ—¶å­˜åœ¨æ—¶ç‹¬æ˜¾å¿…èƒœã€‚
     if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
     {
         score += 1000;
     }
 
-    // ×î´óÎÆÀí³ß´ç·´Ó³ÄÜÁ¦ÏÂÏŞ¡£´ÖÂÔ°´ 4K µ¥Î»È¡Õ¼±È£¬
-    // ÈÃ²î¾àĞüÊâÊ±Ò²ÄÜÀ­¿ªµµ´Î¡£
+    // æœ€å¤§çº¹ç†å°ºå¯¸åæ˜ èƒ½åŠ›ä¸‹é™ã€‚ç²—ç•¥æŒ‰ 4K å•ä½å–å æ¯”ï¼Œ
+    // è®©å·®è·æ‚¬æ®Šæ—¶ä¹Ÿèƒ½æ‹‰å¼€æ¡£æ¬¡ã€‚
     const int maxTextureSize = static_cast<int>(deviceProperties.limits.maxImageDimension2D);
     score += maxTextureSize > 0 ? (maxTextureSize / 4096) : 0;
 
@@ -431,34 +431,34 @@ void VulkanContext::PickPhysicalDevice()
     m_PhysicalDevice = bestDevice;
     m_QueueFamilies = FindQueueFamilies(m_PhysicalDevice,m_Surface);
 
-    // Ë³ÊÖ»º´æÖ»¶ÁÊôĞÔ¡£ºóĞø´´½¨ Buffer / Image Ê±Òª·´¸´¶ÁËü
-    //£¨¶ÔÆëÒªÇó¡¢Ö§³ÖÄÄĞ©¸ñÊ½...£©£¬²»ÏëÃ¿´Î¶¼À´Ò»´ÎÃ¶¾Ù¡£
+    // é¡ºæ‰‹ç¼“å­˜åªè¯»å±æ€§ã€‚åç»­åˆ›å»º Buffer / Image æ—¶è¦åå¤è¯»å®ƒ
+    //ï¼ˆå¯¹é½è¦æ±‚ã€æ”¯æŒå“ªäº›æ ¼å¼...ï¼‰ï¼Œä¸æƒ³æ¯æ¬¡éƒ½æ¥ä¸€æ¬¡æšä¸¾ã€‚
     vkGetPhysicalDeviceProperties(m_PhysicalDevice, &m_DeviceProperties);
 }
 // ===========================================================================
-//  3. LogicalDevice ¡ª¡ª ´Ó PhysicalDevice "¿ªÆô"³öÀ´µÄÂß¼­Á¬½Ó
+//  3. LogicalDevice â€”â€” ä» PhysicalDevice "å¼€å¯"å‡ºæ¥çš„é€»è¾‘è¿æ¥
 // ===========================================================================
 
 std::vector<const char*> VulkanContext::GetRequiredDeviceExtensions()
 {
-    // Ö»ÁĞÒ»Ïî£¬µ«Ëü±ØĞëÔÚÕâÀï³öÏÖ£º
-    //   VK_KHR_swapchain ÈÃÉè±¸ÄÜ´´½¨½»»»Á´£¬Ã»ÓĞËü¾ÍÎŞ·¨°Ñ»­ÃæËÍµ½´°¿Ú¡£
-    //   ½×¶Î 3 »áÓÃµ½£¬ÏÖÔÚÏÈ¿ªÆô£¨¿ªÆôÎ´Ê¹ÓÃµÄÀ©Õ¹ÊÇ°²È«µÄ£©¡£
+    // åªåˆ—ä¸€é¡¹ï¼Œä½†å®ƒå¿…é¡»åœ¨è¿™é‡Œå‡ºç°ï¼š
+    //   VK_KHR_swapchain è®©è®¾å¤‡èƒ½åˆ›å»ºäº¤æ¢é“¾ï¼Œæ²¡æœ‰å®ƒå°±æ— æ³•æŠŠç”»é¢é€åˆ°çª—å£ã€‚
+    //   é˜¶æ®µ 3 ä¼šç”¨åˆ°ï¼Œç°åœ¨å…ˆå¼€å¯ï¼ˆå¼€å¯æœªä½¿ç”¨çš„æ‰©å±•æ˜¯å®‰å…¨çš„ï¼‰ã€‚
     //
-    // ¡¾ÎªÊ²Ã´Ëü²»ÊôÓÚºËĞÄ¡¿Vulkan ¹æ·¶°Ñ"´°¿ÚÏµÍ³Ïà¹Ø"µÄÀ©Õ¹
-    //   Ò»ÂÉ¶¨ÒåÎª KHR ¼¶ ¡ª¡ª Vulkan ±¾ÉíÖ»¶¨ÒåÔõÃ´»­£¬²»¶¨Òå»­µ½ÄÄ¡£
+    // ã€ä¸ºä»€ä¹ˆå®ƒä¸å±äºæ ¸å¿ƒã€‘Vulkan è§„èŒƒæŠŠ"çª—å£ç³»ç»Ÿç›¸å…³"çš„æ‰©å±•
+    //   ä¸€å¾‹å®šä¹‰ä¸º KHR çº§ â€”â€” Vulkan æœ¬èº«åªå®šä¹‰æ€ä¹ˆç”»ï¼Œä¸å®šä¹‰ç”»åˆ°å“ªã€‚
     return { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 }
 
 void VulkanContext::CreateLogicalDevice()
 {   
-    // ---- ¶ÓÁĞÉêÇë --------------------------------------------------------
+    // ---- é˜Ÿåˆ—ç”³è¯· --------------------------------------------------------
     //
-    // ¡¾±ØĞëÏÔÊ½ÉêÇë¡¿OpenGL µÄÉÏÏÂÎÄÌìÉú´ø×ÅÒ»ÇĞ£»Vulkan Àï
-    //   "Õâ¸öÉè±¸ÉÏÓĞÄÄ¼¸Ìõ¶ÓÁĞ"ÊÇÄãÉêÇë³öÀ´µÄ£¬²»ÉêÇë¾ÍÄÃ²»µ½¾ä±ú¡£
+    // ã€å¿…é¡»æ˜¾å¼ç”³è¯·ã€‘OpenGL çš„ä¸Šä¸‹æ–‡å¤©ç”Ÿå¸¦ç€ä¸€åˆ‡ï¼›Vulkan é‡Œ
+    //   "è¿™ä¸ªè®¾å¤‡ä¸Šæœ‰å“ªå‡ æ¡é˜Ÿåˆ—"æ˜¯ä½ ç”³è¯·å‡ºæ¥çš„ï¼Œä¸ç”³è¯·å°±æ‹¿ä¸åˆ°å¥æŸ„ã€‚
     //
-    // ¡¾priority ÊÇ±ØĞëµÄ£¬²»ÄÜ´« nullptr¡¿Ëü¾ö¶¨Í¬×å¶àÌõ¶ÓÁĞ¼äµÄµ÷¶ÈÈ¨ÖØ¡£
-    //   ±¾½×¶ÎÖ»ÉêÇë 1 Ìõ£¬Ìî 1.0 ¼´¿É¡£
+    // ã€priority æ˜¯å¿…é¡»çš„ï¼Œä¸èƒ½ä¼  nullptrã€‘å®ƒå†³å®šåŒæ—å¤šæ¡é˜Ÿåˆ—é—´çš„è°ƒåº¦æƒé‡ã€‚
+    //   æœ¬é˜¶æ®µåªç”³è¯· 1 æ¡ï¼Œå¡« 1.0 å³å¯ã€‚
     QueueFamilyIndices indices = m_QueueFamilies;
     std::vector<uint32_t> uniqueFamilies;
     uniqueFamilies.push_back(indices.GraphicsFamily.value());
@@ -477,12 +477,12 @@ void VulkanContext::CreateLogicalDevice()
         queueCreateInfo.pQueuePriorities = &queuePriority;
         queueCreateInfos.push_back(queueCreateInfo);
     }
-    // ---- Éè±¸ÌØĞÔ --------------------------------------------------------
+    // ---- è®¾å¤‡ç‰¹æ€§ --------------------------------------------------------
    //
-   // ÏÖÔÚÊ²Ã´¶¼²»ÆôÓÃ¡£geometryShader / tessellation / wideLine Ö®Àà
-   // Ä¬ÈÏÊÇ¹ØµÄ ¡ª¡ª ¡¾Vulkan Óë OpenGL µÄÖØ´ó²îÒì¡¿£º
-   //   OpenGL ÀïÕâĞ©¹¦ÄÜËæÊ±¿ÉÓÃ£¬Vulkan Àï²»ÔÚÕâÀïÏÔÊ½ÉêÇë£¬
-   //   ºóĞøÔÚ Pipeline ÀïÒ²ÓÃ²»ÁË£¬ÇÒĞ£Ñé²ã»áÖ±½Ó±¨´í¡£
+   // ç°åœ¨ä»€ä¹ˆéƒ½ä¸å¯ç”¨ã€‚geometryShader / tessellation / wideLine ä¹‹ç±»
+   // é»˜è®¤æ˜¯å…³çš„ â€”â€” ã€Vulkan ä¸ OpenGL çš„é‡å¤§å·®å¼‚ã€‘ï¼š
+   //   OpenGL é‡Œè¿™äº›åŠŸèƒ½éšæ—¶å¯ç”¨ï¼ŒVulkan é‡Œä¸åœ¨è¿™é‡Œæ˜¾å¼ç”³è¯·ï¼Œ
+   //   åç»­åœ¨ Pipeline é‡Œä¹Ÿç”¨ä¸äº†ï¼Œä¸”æ ¡éªŒå±‚ä¼šç›´æ¥æŠ¥é”™ã€‚
     VkPhysicalDeviceVulkan13Features enabled13{};
     enabled13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
     enabled13.dynamicRendering = VK_TRUE;
@@ -493,15 +493,15 @@ void VulkanContext::CreateLogicalDevice()
 
 
 
-    // ---- ´´½¨ ------------------------------------------------------------
+    // ---- åˆ›å»º ------------------------------------------------------------
     VkDeviceCreateInfo deviceCreateInfo{};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
     deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     deviceCreateInfo.pNext = &features2;
     deviceCreateInfo.pEnabledFeatures = nullptr;
-    // ¡¾ÎªÊ²Ã´Éè±¸²ã»¹Òª´øÒ»´ÎĞ£Ñé²ã¡¿ĞÂ¹æ·¶ÏÂ Instance ÉÏÆôÓÃ¾Í¹»ÁË£¬
-    //   µ«¾ÉÇı¶¯/¾É SDK »áÒªÇóÁ½²ã¶¼ÁĞ¡£ÎªÁË¼æÈİĞÔ£¬Á½±ß±£³ÖÒ»ÖÂ¡£
+    // ã€ä¸ºä»€ä¹ˆè®¾å¤‡å±‚è¿˜è¦å¸¦ä¸€æ¬¡æ ¡éªŒå±‚ã€‘æ–°è§„èŒƒä¸‹ Instance ä¸Šå¯ç”¨å°±å¤Ÿäº†ï¼Œ
+    //   ä½†æ—§é©±åŠ¨/æ—§ SDK ä¼šè¦æ±‚ä¸¤å±‚éƒ½åˆ—ã€‚ä¸ºäº†å…¼å®¹æ€§ï¼Œä¸¤è¾¹ä¿æŒä¸€è‡´ã€‚
     std::vector<const char*> deviceExtensions = GetRequiredDeviceExtensions();
     deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
@@ -514,10 +514,10 @@ void VulkanContext::CreateLogicalDevice()
 
     ThrowOnFailed(vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, nullptr, &m_Device),
         "vkCreateDevice");
-    // ---- È¡³ö¶ÓÁĞ¾ä±ú ----------------------------------------------------
+    // ---- å–å‡ºé˜Ÿåˆ—å¥æŸ„ ----------------------------------------------------
     //
-    // ¶ÓÁĞÊÇÉè±¸´´½¨Ê±¡¾ÒÑ¾­´æÔÚ¡¿µÄ£¬ÕâÀïÖ»ÊÇÄÃµ½ËüµÄ¾ä±ú¡£
-    // Ã»ÓĞ vkCreateQueue ¡ª¡ª Ò²²»ÄÜµ¥¶ÀÏú»Ù¶ÓÁĞ£¬ËüËæ Device Ò»ÆğÏûÊ§¡£
+    // é˜Ÿåˆ—æ˜¯è®¾å¤‡åˆ›å»ºæ—¶ã€å·²ç»å­˜åœ¨ã€‘çš„ï¼Œè¿™é‡Œåªæ˜¯æ‹¿åˆ°å®ƒçš„å¥æŸ„ã€‚
+    // æ²¡æœ‰ vkCreateQueue â€”â€” ä¹Ÿä¸èƒ½å•ç‹¬é”€æ¯é˜Ÿåˆ—ï¼Œå®ƒéš Device ä¸€èµ·æ¶ˆå¤±ã€‚
     vkGetDeviceQueue(m_Device, indices.GraphicsFamily.value(), 0, &m_GraphicsQueue);
     const uint32_t presentFamily = indices.PresentFamily.value_or(indices.GraphicsFamily.value());
     vkGetDeviceQueue(m_Device, presentFamily, 0, &m_PresentQueue);

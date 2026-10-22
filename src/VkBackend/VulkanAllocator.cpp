@@ -1,4 +1,4 @@
-#include "VkBackend/VulkanAllocator.h"
+ï»¿#include "VkBackend/VulkanAllocator.h"
 #include <stdexcept>
 #include <algorithm>
 
@@ -10,12 +10,12 @@ VulkanAllocator::VulkanAllocator(VkDevice device,VkPhysicalDevice physicalDevice
 }
 VulkanAllocator::~VulkanAllocator()
 {
-    // Ö»ÊÍ·Å VkDeviceMemory£¬²»ÅöÈÎºÎ VkBuffer ¡ª¡ª ÄÇĞ©¹é VulkanBuffer ¹Ü¡£
+    // åªé‡Šæ”¾ VkDeviceMemoryï¼Œä¸ç¢°ä»»ä½• VkBuffer â€”â€” é‚£äº›å½’ VulkanBuffer ç®¡ã€‚
     //
-    // ¡¾ÉúÃüÖÜÆÚÔ¼Êø¡¿µ÷ÓÃ·½±ØĞë±£Ö¤±¾¶ÔÏóÏÈÓÚ VkDevice Ïú»Ù¡£
-    //   ÕâĞ©ÄÚ´æ¶¼ÊôÓÚ device£¬device Ò»ËÀËüÃÇÈ«²¿Ê§Ğ§¡£
-    //   Application ÀïµÄ±£Ö¤·½Ê½ÊÇ m_Allocator ÉùÃ÷ÔÚ m_Context Ö®Ç°
-    //   £¨ÄæĞòÎö¹¹ -> allocator ÏÈËÀ£©¡£
+    // ã€ç”Ÿå‘½å‘¨æœŸçº¦æŸã€‘è°ƒç”¨æ–¹å¿…é¡»ä¿è¯æœ¬å¯¹è±¡å…ˆäº VkDevice é”€æ¯ã€‚
+    //   è¿™äº›å†…å­˜éƒ½å±äº deviceï¼Œdevice ä¸€æ­»å®ƒä»¬å…¨éƒ¨å¤±æ•ˆã€‚
+    //   Application é‡Œçš„ä¿è¯æ–¹å¼æ˜¯ m_Allocator å£°æ˜åœ¨ m_Context ä¹‹å‰
+    //   ï¼ˆé€†åºææ„ -> allocator å…ˆæ­»ï¼‰ã€‚
     for (auto& blocksOfType : m_Blocks)
     {
         for (MemoryBlock& block : blocksOfType)
@@ -41,22 +41,22 @@ VulkanAllocator::Allocation VulkanAllocator::Allocate(VkDeviceSize size, VkDevic
 
     }
     const uint32_t typeIndex = FindMemoryType(typeBits, usage);
-    // ---- 1. ÏÈÊÔÏÖÓĞ¿é ---------------------------------------------------
+    // ---- 1. å…ˆè¯•ç°æœ‰å— ---------------------------------------------------
     for (MemoryBlock& block : m_Blocks[typeIndex])
     {
         Allocation candidate;
         if (TryAllocateFromBlock(block, size, alignment, candidate))
         {
-            //·ÖÅä³É¹¦
+            //åˆ†é…æˆåŠŸ
             m_TotalAllocateBytes += candidate.size;
             return candidate;
         }
     }
-    // ---- 2. ¶¼·Å²»ÏÂ£¬¿ªĞÂ¿é ---------------------------------------------
+    // ---- 2. éƒ½æ”¾ä¸ä¸‹ï¼Œå¼€æ–°å— ---------------------------------------------
     //
-    // ĞÂ¿éÖÁÉÙ k_MinBlockSize£»µ«ÇëÇó±¾Éí¾Í³¬ÁËÊ±£¬°´ÇëÇóÀ´
-    // £¨·ñÔòÕâ´Î·ÖÅäÓÀÔ¶Ê§°Ü£©¡£ÏòÉÏ¶ÔÆëµ½ alignment£¬
-    // ±£Ö¤¿éÄÚµÚÒ»¸ö·ÖÅä²»±ØÎªÁË¶ÔÆë¶øÀË·ÑÍ·²¿¿Õ¼ä¡£
+    // æ–°å—è‡³å°‘ k_MinBlockSizeï¼›ä½†è¯·æ±‚æœ¬èº«å°±è¶…äº†æ—¶ï¼ŒæŒ‰è¯·æ±‚æ¥
+    // ï¼ˆå¦åˆ™è¿™æ¬¡åˆ†é…æ°¸è¿œå¤±è´¥ï¼‰ã€‚å‘ä¸Šå¯¹é½åˆ° alignmentï¼Œ
+    // ä¿è¯å—å†…ç¬¬ä¸€ä¸ªåˆ†é…ä¸å¿…ä¸ºäº†å¯¹é½è€Œæµªè´¹å¤´éƒ¨ç©ºé—´ã€‚
     const VkDeviceSize requested = AlignUp(size, alignment);
     const VkDeviceSize blockSize = requested > k_MinBlockSize ? requested : k_MinBlockSize;
     MemoryBlock& block = CreateBlock(typeIndex, blockSize);
@@ -94,11 +94,11 @@ void VulkanAllocator::Free(const Allocation& allocation)
 
 uint32_t VulkanAllocator::FindMemoryType(uint32_t typeBits, Usage usage) const
 {
-    // °´ÓÃÍ¾Ó³Éäµ½Çı¶¯Ö§³ÖµÄÄÚ´æÊôĞÔ¡£
+    // æŒ‰ç”¨é€”æ˜ å°„åˆ°é©±åŠ¨æ”¯æŒçš„å†…å­˜å±æ€§ã€‚
     //
-    // HOST_COHERENT µÄº¬Òå£ºCPU µÄĞ´¶Ô GPU Á¢¼´¿É¼û£¬²»ĞèÒªÊÖ¶¯ flush¡£
-    //   ²»¼ÓËü¾ÍµÃÃ¿´ÎĞ´Íêºóµ÷ vkFlushMappedMemoryRanges£¬ºÜÈİÒ×Íü¡£
-    //   ´ú¼ÛÊÇÄ³Ğ©¼Ü¹¹ÉÏÂÔÂı¡£¿ª·¢ÆÚÒ»ÂÉ¼ÓÉÏ£¬±ğÎªÊ¡Õâµã¿ªÏúÒıÈë bug¡£
+    // HOST_COHERENT çš„å«ä¹‰ï¼šCPU çš„å†™å¯¹ GPU ç«‹å³å¯è§ï¼Œä¸éœ€è¦æ‰‹åŠ¨ flushã€‚
+    //   ä¸åŠ å®ƒå°±å¾—æ¯æ¬¡å†™å®Œåè°ƒ vkFlushMappedMemoryRangesï¼Œå¾ˆå®¹æ˜“å¿˜ã€‚
+    //   ä»£ä»·æ˜¯æŸäº›æ¶æ„ä¸Šç•¥æ…¢ã€‚å¼€å‘æœŸä¸€å¾‹åŠ ä¸Šï¼Œåˆ«ä¸ºçœè¿™ç‚¹å¼€é”€å¼•å…¥ bugã€‚
     const VkMemoryPropertyFlags required =
         (usage == Usage::GPUOnly) ? VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT :
         (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -127,10 +127,10 @@ VulkanAllocator::MemoryBlock& VulkanAllocator::CreateBlock(uint32_t typeIndex, V
     {
         throw std::runtime_error("[VulkanAllocator] vkAllocateMemory failed");
     }
-    // HOST_VISIBLE µÄÄÚ´æ²ÅĞèÒªÓ³Éä¡£GpuOnly Ó³Éä»áÖ±½Ó·µ»Ø´íÎó¡£
+    // HOST_VISIBLE çš„å†…å­˜æ‰éœ€è¦æ˜ å°„ã€‚GpuOnly æ˜ å°„ä¼šç›´æ¥è¿”å›é”™è¯¯ã€‚
     //
-    // ¡¾ÎªÊ²Ã´Ö»Ó³ÉäÒ»´Î¡¿vkMapMemory ÓĞÕæÊµ¿ªÏú£¬ÇÒÓ³Éä´ÎÊıÊÜÇı¶¯ÏŞÖÆ¡£
-    //   ¿éÄÚËùÓĞ×Ó·ÖÅä¹²ÓÃÕâÒ»·İÓ³Éä£¬¿¿ offset Ñ°Ö· ¡ª¡ª Õâ¾ÍÊÇ"³Ö¾ÃÓ³Éä"¡£
+    // ã€ä¸ºä»€ä¹ˆåªæ˜ å°„ä¸€æ¬¡ã€‘vkMapMemory æœ‰çœŸå®å¼€é”€ï¼Œä¸”æ˜ å°„æ¬¡æ•°å—é©±åŠ¨é™åˆ¶ã€‚
+    //   å—å†…æ‰€æœ‰å­åˆ†é…å…±ç”¨è¿™ä¸€ä»½æ˜ å°„ï¼Œé  offset å¯»å€ â€”â€” è¿™å°±æ˜¯"æŒä¹…æ˜ å°„"ã€‚
     const bool isHostVisible =
         (m_MemoryProperties.memoryTypes[typeIndex].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
     if (isHostVisible)
@@ -146,7 +146,7 @@ VulkanAllocator::MemoryBlock& VulkanAllocator::CreateBlock(uint32_t typeIndex, V
     block.freeList.push_back({ 0,size });
     m_Blocks[typeIndex].push_back(block);
     return m_Blocks[typeIndex].back();
-    // TODO: ÔÚ´Ë´¦²åÈë return Óï¾ä
+    // TODO: åœ¨æ­¤å¤„æ’å…¥ return è¯­å¥
 }
 
 bool VulkanAllocator::TryAllocateFromBlock(MemoryBlock& block, VkDeviceSize size, VkDeviceSize alignment, Allocation& outAllocation) const
@@ -158,7 +158,7 @@ bool VulkanAllocator::TryAllocateFromBlock(MemoryBlock& block, VkDeviceSize size
         const VkDeviceSize headWaste = alignedOffset - range.offset;
         if (range.size < headWaste + size)
         {
-            continue; //Õâ¸öFreeRange ·Å²»ÏÂ
+            continue; //è¿™ä¸ªFreeRange æ”¾ä¸ä¸‹
         }
         outAllocation.memory = block.memory;
         outAllocation.size = size;
@@ -166,7 +166,7 @@ bool VulkanAllocator::TryAllocateFromBlock(MemoryBlock& block, VkDeviceSize size
         outAllocation.mapped = block.mapped != nullptr ? static_cast<char*>(block.mapped) + alignedOffset : nullptr;
         range.offset = alignedOffset + size;
         range.size = range.size - (headWaste + size);
-        // Ë³ÊÖÇåµôºÄ¾¡¶Î£¬±ÜÃâ freeList ÎŞÏŞÔö³¤
+        // é¡ºæ‰‹æ¸…æ‰è€—å°½æ®µï¼Œé¿å… freeList æ— é™å¢é•¿
         if (range.size == 0)
         {
             block.freeList.erase(block.freeList.begin() + static_cast<std::ptrdiff_t>(i));

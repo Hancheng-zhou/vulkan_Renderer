@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <vulkan/vulkan.h>
 #include <cstdint>
 #include <vector>
@@ -22,8 +22,8 @@ public:
 
 	VulkanSwapchain(const VulkanSwapchain&) = delete;
 	VulkanSwapchain& operator=(const VulkanSwapchain&) = delete;
-	bool Recreate(uint32_t width, uint32_t height);   // ·µ»Ø false = ±¾´ÎÎŞ·¨ÖØ½¨£¨³ß´çÎª0£©
-	//-------------²éÑ¯-------------------------
+	bool Recreate(uint32_t width, uint32_t height);   // è¿”å› false = æœ¬æ¬¡æ— æ³•é‡å»ºï¼ˆå°ºå¯¸ä¸º0ï¼‰
+	//-------------æŸ¥è¯¢-------------------------
 	VkSwapchainKHR GetHandle()     const { return m_Swapchain; }
 	VkFormat       GetFormat()     const { return m_ImageFormat; }
 	VkExtent2D     GetExtent()     const { return m_Extent; }
@@ -32,28 +32,28 @@ public:
 	const std::vector<VkImageView>& GetImageViews() const { return m_ImageViews; }
 	void PrintInfo() const;
 private:
-	void Create(bool useOldSwapchain);// ÕæÕıµÄ´´½¨Âß¼­£¬¹¹ÔìºÍ Recreate ¹²ÓÃ
-	void Destroy();// Ö»Ïú»Ù imageView + swapchain£¬²»Åö device/surface
-	//-------------ÄÚ²¿¹¤¾ß----------------------
+	void Create(bool useOldSwapchain);// çœŸæ­£çš„åˆ›å»ºé€»è¾‘ï¼Œæ„é€ å’Œ Recreate å…±ç”¨
+	void Destroy();// åªé”€æ¯ imageView + swapchainï¼Œä¸ç¢° device/surface
+	//-------------å†…éƒ¨å·¥å…·----------------------
 	VkSurfaceFormatKHR ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) const;
 	VkPresentModeKHR   ChoosePresentMode(const std::vector<VkPresentModeKHR>& presentModes) const;
 	VkExtent2D         ChooseExtent(const VkSurfaceCapabilitiesKHR& surfaceCaps, uint32_t w, uint32_t h) const;
 private:
-	//´´½¨²ÎÊı
+	//åˆ›å»ºå‚æ•°
 	VkPhysicalDevice m_PhysicalDevice;
 	VkDevice m_Device;
 	VkSurfaceKHR m_Surface;
 	uint32_t m_GraphicsQueueFamily;
 	uint32_t m_PresentQueueFamily;
-	uint32_t m_RequestedWidth;    // ÇëÇó³ß´ç£¬²»ÊÇĞ­ÉÌºóµÄ extent
+	uint32_t m_RequestedWidth;    // è¯·æ±‚å°ºå¯¸ï¼Œä¸æ˜¯åå•†åçš„ extent
 	uint32_t m_RequestedHeight;
-	//µ±Ç°ÕâÒ»´ú½»»»Á´²úÎï
-	VkSwapchainKHR           m_Swapchain = VK_NULL_HANDLE;    // VK_NULL_HANDLE ³õÊ¼»¯
-	std::vector<VkImage>     m_Images;       // ½»»»Á´´´½¨£¬ÎÒÃÇ¡¾²»ÄÜ¡¿Ïú»Ù
-	std::vector<VkImageView> m_ImageViews;   // ÎÒÃÇ´´½¨£¬¡¾±ØĞë¡¿Ïú»Ù
-	VkFormat         m_ImageFormat = VK_FORMAT_UNDEFINED;          // ³õÊ¼ VK_FORMAT_UNDEFINED
-	VkPresentModeKHR m_PresentMode = VK_PRESENT_MODE_FIFO_KHR;          // ³õÊ¼ VK_PRESENT_MODE_FIFO_KHR
-	VkExtent2D       m_Extent = { 0,0 };               // ³õÊ¼ {0, 0}
+	//å½“å‰è¿™ä¸€ä»£äº¤æ¢é“¾äº§ç‰©
+	VkSwapchainKHR           m_Swapchain = VK_NULL_HANDLE;    // VK_NULL_HANDLE åˆå§‹åŒ–
+	std::vector<VkImage>     m_Images;       // äº¤æ¢é“¾åˆ›å»ºï¼Œæˆ‘ä»¬ã€ä¸èƒ½ã€‘é”€æ¯
+	std::vector<VkImageView> m_ImageViews;   // æˆ‘ä»¬åˆ›å»ºï¼Œã€å¿…é¡»ã€‘é”€æ¯
+	VkFormat         m_ImageFormat = VK_FORMAT_UNDEFINED;          // åˆå§‹ VK_FORMAT_UNDEFINED
+	VkPresentModeKHR m_PresentMode = VK_PRESENT_MODE_FIFO_KHR;          // åˆå§‹ VK_PRESENT_MODE_FIFO_KHR
+	VkExtent2D       m_Extent = { 0,0 };               // åˆå§‹ {0, 0}
 
 
 };

@@ -1,4 +1,4 @@
-#include "VkBackend/VulkanCommandPool.h"
+﻿#include "VkBackend/VulkanCommandPool.h"
 #include <stdexcept>
 #include <string>
 
@@ -44,22 +44,73 @@ VulkanCommandPool::VulkanCommandPool(VkDevice device, uint32_t queueFamily, uint
 
 VulkanCommandPool::~VulkanCommandPool()
 {
-	// buffer �� pool ���У����� pool ʱһ�����գ�����Ҫ���� free��
+	// buffer 归 pool 所有，销毁 pool 时一并回收，不需要单独 free。
 	m_Buffers.clear();
 
 	if (m_Pool != VK_NULL_HANDLE)
 	{
-		// ��Ҫ�� GPU ����ִ����Щ���塿�� Application::Shutdown ���
-		// vkDeviceWaitIdle ��֤��
+		// 【要求 GPU 不在执行这些缓冲】由 Application::Shutdown 里的
+		// vkDeviceWaitIdle 保证。
 		vkDestroyCommandPool(m_Device, m_Pool, nullptr);
 		m_Pool = VK_NULL_HANDLE;
 	}
 }
 void VulkanCommandPool::ResetAll()
 {
-	// flags = 0���ͷ���������ռ�õ���Դ���û���ص���ʼ״̬��
-	// ע���������õ��ǡ����� pool��������Ҫ�����л��嶼���� pending��
+	// flags = 0：释放所有命令占用的资源，让缓冲回到初始状态。
+	// 注意这里重置的是【整个 pool】，所以要求所有缓冲都不在 pending。
 	ThrowOnFailed(vkResetCommandPool(m_Device, m_Pool, 0), "vkResetCommandPool");
+}
+
+void VulkanCommandPool::SubmitOneShot(VkQueue queue, const std::function<void(VkCommandBuffer)>& recorder)
+{
+	// ---- 1. 分配一条临时缓冲 ---------------------------------------------
+	//
+	//  从同一个 pool 分配，但【不复用】帧槽位的那些 —— 那些可能正在
+	//  GPU 上执行。临时缓冲用完立即归还，互不干扰。
+	VkCommandBufferAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = m_Pool;
+	allocInfo.commandBufferCount = 1;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	
+	VkCommandBuffer cmd = VK_NULL_HANDLE;
+	ThrowOnFailed(vkAllocateCommandBuffers(m_Device, &allocInfo, &cmd), "vkAllocateCommandBuffers(one-shot)");
+
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	ThrowOnFailed(vkBeginCommandBuffer(cmd, &beginInfo), "vkBeginCommandBuffer(one-shot)");
+
+	recorder(cmd);
+
+	ThrowOnFailed(vkEndCommandBuffer(cmd), "vkEndCommandBuffer(one-shot)");
+	// ---- 2. 用临时围栏等它执行完 -----------------------------------------
+	//
+	//  这里不能用帧槽位的 InFlight —— 那个属于主循环，语义不同，
+	//  借用会让它的状态管理彻底混乱。
+	VkFenceCreateInfo fenceInfo{};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+	VkFence fence = VK_NULL_HANDLE;
+	ThrowOnFailed(vkCreateFence(m_Device, &fenceInfo, nullptr, &fence),
+		"vkCreateFence(one-shot)");
+
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &cmd;
+
+	ThrowOnFailed(vkQueueSubmit(queue, 1, &submitInfo, fence), "vkQueueSubmit(one-shot)");
+	ThrowOnFailed(vkWaitForFences(m_Device, 1, &fence, VK_TRUE, UINT64_MAX),
+		"vkWaitForFences(one-shot)");
+
+	vkDestroyFence(m_Device, fence, nullptr);
+
+	// ---- 3. 归还缓冲 -----------------------------------------------------
+	//
+	//  【必须在等待之后】还在 pending 时回收是未定义行为。
+	vkFreeCommandBuffers(m_Device, m_Pool, 1, &cmd);
 }
 
 // ---------------------------------------------------------------------------

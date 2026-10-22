@@ -1,14 +1,14 @@
-// ===========================================================================
+ï»¿// ===========================================================================
 //  VkBackend/VulkanBuffer.h
 //
-//  Ö°Ôğ±ß½ç£º
-//    ¹Ü£ºVkBuffer ¶ÔÏóµÄ´´½¨/Ïú»Ù¡¢Ïò allocator ÉêÇë backing memory¡¢bind
-//    ²»¹Ü£ºÏÔ´æÔõÃ´·Ö£¨ÄÇÊÇ VulkanAllocator µÄÊÂ£©
+//  èŒè´£è¾¹ç•Œï¼š
+//    ç®¡ï¼šVkBuffer å¯¹è±¡çš„åˆ›å»º/é”€æ¯ã€å‘ allocator ç”³è¯· backing memoryã€bind
+//    ä¸ç®¡ï¼šæ˜¾å­˜æ€ä¹ˆåˆ†ï¼ˆé‚£æ˜¯ VulkanAllocator çš„äº‹ï¼‰
 //
-//  Óë ZHC µÄ VertexBuffer / IndexBuffer µÄ¹ØÏµ£º
-//    ZHC ·Ö³ÉÁ½¸öÀà£¬ÒòÎª GL Àï VAO/VBO/EBO ÊÇÈıÌ×²»Í¬¶ÔÏó¡£
-//    Vulkan ÀïÁ½Õß¶¼ÊÇ VkBuffer£¬Ö»¿¿ usage Î»Çø·Ö ¡ª¡ª ËùÒÔºÏ²¢³ÉÒ»¸öÀà£¬
-//    ÓÉµ÷ÓÃ·½ÔÚ CreateInfo ÀïÖ¸¶¨ usage£¨VERTEX / INDEX / UNIFORM ...£©¡£
+//  ä¸ ZHC çš„ VertexBuffer / IndexBuffer çš„å…³ç³»ï¼š
+//    ZHC åˆ†æˆä¸¤ä¸ªç±»ï¼Œå› ä¸º GL é‡Œ VAO/VBO/EBO æ˜¯ä¸‰å¥—ä¸åŒå¯¹è±¡ã€‚
+//    Vulkan é‡Œä¸¤è€…éƒ½æ˜¯ VkBufferï¼Œåªé  usage ä½åŒºåˆ† â€”â€” æ‰€ä»¥åˆå¹¶æˆä¸€ä¸ªç±»ï¼Œ
+//    ç”±è°ƒç”¨æ–¹åœ¨ CreateInfo é‡ŒæŒ‡å®š usageï¼ˆVERTEX / INDEX / UNIFORM ...ï¼‰ã€‚
 // ===========================================================================
 #pragma once
 
@@ -17,7 +17,7 @@
 #include <cstdint>
 
 #include "VkBackend/VulkanAllocator.h"
-
+class VulkanCommandPool;
 class VulkanBuffer
 {
 public:
@@ -26,9 +26,9 @@ public:
 		VkDeviceSize size = 0;
 		VkBufferUsageFlags usage = 0;
 		VulkanAllocator::Usage memoryUsage = VulkanAllocator::Usage::CPUToGPU;
-		// ¶¥µãÊı¾İÍ¨³£ÒªÇó 4 ×Ö½Ú¶ÔÆë£¬UBO ÒªÇó¸üÑÏ£¨¼ûÏÂ£©¡£
-		// ´« 0 ±íÊ¾"ÓÃ buffer ×Ô¼ºÒªÇóµÄ×îĞ¡¶ÔÆë"£¨¹¹ÔìÊ±´Ó
-		// VkMemoryRequirements::alignment È¡£©¡£
+		// é¡¶ç‚¹æ•°æ®é€šå¸¸è¦æ±‚ 4 å­—èŠ‚å¯¹é½ï¼ŒUBO è¦æ±‚æ›´ä¸¥ï¼ˆè§ä¸‹ï¼‰ã€‚
+		// ä¼  0 è¡¨ç¤º"ç”¨ buffer è‡ªå·±è¦æ±‚çš„æœ€å°å¯¹é½"ï¼ˆæ„é€ æ—¶ä»
+		// VkMemoryRequirements::alignment å–ï¼‰ã€‚
 		VkDeviceSize alignment = 0;
 	};
 	VulkanBuffer(VkDevice device, VulkanAllocator& allocator, const CreateInfo& info);
@@ -36,18 +36,33 @@ public:
 
 	VulkanBuffer(const VulkanBuffer&) = delete;
 	VulkanBuffer& operator=(const VulkanBuffer&) = delete;
-	// ---- Êı¾İÉÏ´« --------------------------------------------------------
+	// ---- æ•°æ®ä¸Šä¼  --------------------------------------------------------
 	//
-	//  ½ö¶Ô CpuToGpu ÓĞĞ§¡£GpuOnly ÄÚ´æ CPU ²»¿É¼û£¬µ÷ËüµÈÓÚĞ´Ò°Ö¸Õë ¡ª¡ª
-	//  ËùÒÔÕâÀïÏÔÊ½Å×Òì³££¬¶ø²»ÊÇ¾²Ä¬Ê§°Ü¡£
-	//  £¨GpuOnly µÄÉÏ´«Òª×ß staging buffer£¬½×¶Î 5 ÊµÏÖ¡££©
+	//  ä»…å¯¹ CpuToGpu æœ‰æ•ˆã€‚GpuOnly å†…å­˜ CPU ä¸å¯è§ï¼Œè°ƒå®ƒç­‰äºå†™é‡æŒ‡é’ˆ â€”â€”
+	//  æ‰€ä»¥è¿™é‡Œæ˜¾å¼æŠ›å¼‚å¸¸ï¼Œè€Œä¸æ˜¯é™é»˜å¤±è´¥ã€‚
+	//  ï¼ˆGpuOnly çš„ä¸Šä¼ è¦èµ° staging bufferï¼Œé˜¶æ®µ 5 å®ç°ã€‚ï¼‰
 	void Upload(const void* data, VkDeviceSize size, VkDeviceSize offset = 0);
-	// ---- ·ÃÎÊ ------------------------------------------------------------
+	// æŠŠ CPU æ•°æ®ä¸Šä¼ åˆ° GPU-only ç¼“å†²ã€‚
+	//
+	// ã€ä¸ºä»€ä¹ˆè¦ä¸¤æ­¥ã€‘DEVICE_LOCAL å†…å­˜ CPU ä¸å¯è§ï¼ˆmapped == nullptrï¼‰ï¼Œ
+	//   ä¸èƒ½ memcpyã€‚æ ‡å‡†åšæ³•æ˜¯å…ˆå†™ä¸€å— HOST_VISIBLE çš„ staging bufferï¼Œ
+	//   å†ç”¨ vkCmdCopyBuffer è®© GPU æ¬è¿‡å»ã€‚
+	//
+	// ã€ä¸ºä»€ä¹ˆä¸èƒ½ç›´æ¥ç»™ GpuOnly åˆ†é… HOST_VISIBLE å†…å­˜ã€‘é‚£ç§å†…å­˜çš„
+	//   è®¿é—®å»¶è¿Ÿé«˜ã€å¸¦å®½ä½ï¼ŒGPU æ¯å¸§è¯»å®ƒä¼šè®©æ€§èƒ½æ‰ä¸€å¤§æˆªã€‚
+	//   åˆ†æˆ"ä¸Šä¼ ä¸€æ¬¡ + é«˜é¢‘è¯»å–"ä¸¤å—ï¼Œæ‰æ˜¯æ­£ç¡®çš„å–èˆã€‚
+	void UploadStaged(VulkanCommandPool& pool,
+		VkQueue queue,
+		const void* data,
+		VkDeviceSize size);
+
+	// ---- è®¿é—® ------------------------------------------------------------
 	VkBuffer     GetHandle() const { return m_Buffer; }
 	VkDeviceSize GetSize()   const { return m_Size; }
 	void* GetMappedPointer() const { return m_Allocation.mapped; }
-	// ¹© Pipeline ÃèÊö¶¥µã²¼¾ÖÓÃ£¨½×¶Î 5£©¡£
+	// ä¾› Pipeline æè¿°é¡¶ç‚¹å¸ƒå±€ç”¨ï¼ˆé˜¶æ®µ 5ï¼‰ã€‚
 	const VkMemoryRequirements& GetRequirements() const { return m_Requirements; }
+
 private:
 	VkDevice m_Device = VK_NULL_HANDLE;
 	VulkanAllocator& m_Allocator;

@@ -1,4 +1,4 @@
-#include "VkBackend/VulkanSwapchain.h"
+ï»¿#include "VkBackend/VulkanSwapchain.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -62,7 +62,7 @@ void VulkanSwapchain::PrintInfo() const
 void VulkanSwapchain::Create(bool useOldSwapchain)
 {
     vkDeviceWaitIdle(m_Device);
-    //1¡¢Ê×ÏÈ²éÑ¯surfaceÄÜÁ¦
+    //1ã€é¦–å…ˆæŸ¥è¯¢surfaceèƒ½åŠ›
     VkSurfaceCapabilitiesKHR caps;
 
     VkResult r = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, m_Surface, &caps);
@@ -83,41 +83,41 @@ void VulkanSwapchain::Create(bool useOldSwapchain)
     std::vector<VkPresentModeKHR> modes(modeCount);
     vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, m_Surface, &modeCount, modes.data());
 
-    //2¡¢Ğ­ÉÌ²¢¼ÇÂ¼
+    //2ã€åå•†å¹¶è®°å½•
     const VkSurfaceFormatKHR surfaceFormat = ChooseSurfaceFormat(formats);
     const VkPresentModeKHR presentMode = ChoosePresentMode(modes);
     const VkExtent2D extent = ChooseExtent(caps, m_RequestedWidth, m_RequestedHeight);
     if (extent.width == 0 || extent.height == 0)
         throw std::runtime_error("[VulkanSwapchain] extent is 0 (window minimized?)");
-    //3¡¢ËãÍ¼ÏñÊıÁ¿
+    //3ã€ç®—å›¾åƒæ•°é‡
     uint32_t imageCount = caps.minImageCount + 1;
-    // maxImageCount == 0 ±íÊ¾¡¾ÎŞÉÏÏŞ¡¿£¬²»ÊÇ"×î¶à 0 ÕÅ"
+    // maxImageCount == 0 è¡¨ç¤ºã€æ— ä¸Šé™ã€‘ï¼Œä¸æ˜¯"æœ€å¤š 0 å¼ "
     if (caps.maxImageCount > 0 && imageCount > caps.maxImageCount)
     {
         imageCount = caps.maxImageCount;
     }
-    //4¡¢Ìîinfo
+    //4ã€å¡«info
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     createInfo.surface = m_Surface;
-    //Í¼ÏñÊıÁ¿
+    //å›¾åƒæ•°é‡
     createInfo.minImageCount = imageCount;
-    //¸ñÊ½+É«²Ê¿Õ¼ä
+    //æ ¼å¼+è‰²å½©ç©ºé—´
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
-    //³ß´ç
+    //å°ºå¯¸
     createInfo.imageExtent = extent;
-    //²ãÊı
+    //å±‚æ•°
     createInfo.imageArrayLayers = 1;
-    //ÓÃÍ¾ £º´¿äÖÈ¾ -> COLOR_ATTACHMENT
-    // ÈôºóĞøÒªºó´¦Àí/½ØÍ¼£¬ÔÙ¼Ó SAMPLED_BIT / TRANSFER_SRC_BIT
+    //ç”¨é€” ï¼šçº¯æ¸²æŸ“ -> COLOR_ATTACHMENT
+    // è‹¥åç»­è¦åå¤„ç†/æˆªå›¾ï¼Œå†åŠ  SAMPLED_BIT / TRANSFER_SRC_BIT
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_SAMPLED_BIT;
 
-    //¶ÓÁĞ×å¹²ÏíÄ£Ê½
+    //é˜Ÿåˆ—æ—å…±äº«æ¨¡å¼
     const uint32_t queueFamilyIndices[] = { m_GraphicsQueueFamily,m_PresentQueueFamily };
     if (m_GraphicsQueueFamily != m_PresentQueueFamily)
     {
-        // graphics ºÍ present ²»ÊÇÍ¬Ò»×å ¡ú ±ØĞë CONCURRENT
+        // graphics å’Œ present ä¸æ˜¯åŒä¸€æ— â†’ å¿…é¡» CONCURRENT
         createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         createInfo.queueFamilyIndexCount = 2;
         createInfo.pQueueFamilyIndices = queueFamilyIndices; 
@@ -129,17 +129,17 @@ void VulkanSwapchain::Create(bool useOldSwapchain)
         createInfo.pQueueFamilyIndices = nullptr;
     }
 
-    //Ô¤±ä»»
+    //é¢„å˜æ¢
     createInfo.preTransform = caps.currentTransform;
-    //ºÏ³Éalpha
+    //åˆæˆalpha
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    //³ÊÏÖÄ£Ê½
+    //å‘ˆç°æ¨¡å¼
     createInfo.presentMode = presentMode;
     //clipped
     createInfo.clipped = VK_TRUE;
     //oldSwapchain
     createInfo.oldSwapchain = useOldSwapchain ? m_Swapchain : VK_NULL_HANDLE;
-    //5¡¢ÏÈ½¨ºó»Ù
+    //5ã€å…ˆå»ºåæ¯
     VkSwapchainKHR oldSwapchain = m_Swapchain;
     VkSwapchainKHR newSwapchain = VK_NULL_HANDLE;
     VkResult result = vkCreateSwapchainKHR(m_Device, &createInfo, nullptr, &newSwapchain);
@@ -161,7 +161,7 @@ void VulkanSwapchain::Create(bool useOldSwapchain)
     {
         vkDestroySwapchainKHR(m_Device, oldSwapchain, nullptr);
     }
-    //6¡¢È¡Í¼Ïñ
+    //6ã€å–å›¾åƒ
     uint32_t actualCount = 0;
     r = vkGetSwapchainImagesKHR(m_Device, m_Swapchain, &actualCount, nullptr);
     if (r != VK_SUCCESS || actualCount == 0)
@@ -170,7 +170,7 @@ void VulkanSwapchain::Create(bool useOldSwapchain)
     r = vkGetSwapchainImagesKHR(m_Device, m_Swapchain, &actualCount, m_Images.data());
     if (r != VK_SUCCESS)
         throw std::runtime_error("[VulkanSwapchain] vkGetSwapchainImagesKHR(data) failed");
-    //7¡¢´´½¨imageviews
+    //7ã€åˆ›å»ºimageviews
     std::vector<VkImageView> newViews(actualCount, VK_NULL_HANDLE);
     for (uint32_t i = 0; i < actualCount; ++i)
     {   
@@ -191,7 +191,7 @@ void VulkanSwapchain::Create(bool useOldSwapchain)
         {
             for (auto v : newViews) if (v) vkDestroyImageView(m_Device, v, nullptr);
             vkDestroySwapchainKHR(m_Device, newSwapchain, nullptr);
-            m_Swapchain = VK_NULL_HANDLE;   // ¡ï ĞÂ swapchain ÒÑÏú»Ù£¬³ÉÔ±Ò²Çåµô
+            m_Swapchain = VK_NULL_HANDLE;   // â˜… æ–° swapchain å·²é”€æ¯ï¼Œæˆå‘˜ä¹Ÿæ¸…æ‰
             throw std::runtime_error("[VulkanSwapchain] vkCreateImageView failed");
         }
 
@@ -202,9 +202,9 @@ void VulkanSwapchain::Create(bool useOldSwapchain)
 
 VkSurfaceFormatKHR VulkanSwapchain::ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) const
 {
-    // ¢Ù ÌØÊâÇé¿ö£ºsurface Ã»ÓĞÊ×Ñ¡¸ñÊ½£¨ÀÏÇı¶¯ / Ä³Ğ©Æ½Ì¨£©
-    //    ¹æ·¶£ºÈôÖ»·µ»ØÒ»¸öÔªËØÇÒ format == VK_FORMAT_UNDEFINED£¬
-    //    ±íÊ¾¿ÉÒÔ×ÔÓÉÑ¡Ôñ£¬´ËÊ±ÓÃÄãÏëÒªµÄ¸ñÊ½¼´¿É¡£
+    // â‘  ç‰¹æ®Šæƒ…å†µï¼šsurface æ²¡æœ‰é¦–é€‰æ ¼å¼ï¼ˆè€é©±åŠ¨ / æŸäº›å¹³å°ï¼‰
+    //    è§„èŒƒï¼šè‹¥åªè¿”å›ä¸€ä¸ªå…ƒç´ ä¸” format == VK_FORMAT_UNDEFINEDï¼Œ
+    //    è¡¨ç¤ºå¯ä»¥è‡ªç”±é€‰æ‹©ï¼Œæ­¤æ—¶ç”¨ä½ æƒ³è¦çš„æ ¼å¼å³å¯ã€‚
     if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
     {
         return { k_PreferredFormat, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
@@ -231,16 +231,16 @@ VkPresentModeKHR VulkanSwapchain::ChoosePresentMode(const std::vector<VkPresentM
     for (const auto& mode : presentModes)
         if (mode == k_PreferredPresentMode)
             return mode;
-    // FIFO ÊÇ¹æ·¶Ç¿ÖÆÒªÇó±ØĞëÖ§³ÖµÄ£¬ÓÀÔ¶´æÔÚ£¬ÇÒ²»ËºÁÑ
+    // FIFO æ˜¯è§„èŒƒå¼ºåˆ¶è¦æ±‚å¿…é¡»æ”¯æŒçš„ï¼Œæ°¸è¿œå­˜åœ¨ï¼Œä¸”ä¸æ’•è£‚
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
 VkExtent2D VulkanSwapchain::ChooseExtent(const VkSurfaceCapabilitiesKHR& surfaceCaps, uint32_t w, uint32_t h) const
 {
-    //Çı¶¯ÒÑ¾­Ö¸¶¨³ß´ç
+    //é©±åŠ¨å·²ç»æŒ‡å®šå°ºå¯¸
     if (surfaceCaps.currentExtent.width != 0xFFFFFFFF)
         return surfaceCaps.currentExtent;
-    //Çı¶¯ÔÊĞí×Ô¶¨³ß´ç µ«ÊÇÒªclampµ½ min-max
+    //é©±åŠ¨å…è®¸è‡ªå®šå°ºå¯¸ ä½†æ˜¯è¦clampåˆ° min-max
     VkExtent2D extent{};
     extent.width = std::clamp(w, surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width);
     extent.height = std::clamp(h, surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height);

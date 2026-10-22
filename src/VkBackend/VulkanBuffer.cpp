@@ -1,4 +1,5 @@
-#include "VkBackend/VulkanBuffer.h"
+ï»¿#include "VkBackend/VulkanBuffer.h"
+#include "VkBackend/VulkanCommandPool.h"
 #include <cstring>
 #include <stdexcept>
 
@@ -10,32 +11,32 @@ VulkanBuffer::VulkanBuffer(VkDevice device, VulkanAllocator& allocator, const Cr
         throw std::runtime_error("[VulkanBuffer] size must not be 0");
     }
 
-    // ---- 1. ´´½¨ VkBuffer ¶ÔÏó -------------------------------------------
+    // ---- 1. åˆ›å»º VkBuffer å¯¹è±¡ -------------------------------------------
     //
-    //  ´Ë¿ÌËü»¹Ö»ÊÇ"Ò»¸ö´øÓÃÍ¾±êÇ©µÄ¿Õ¿Ç" ¡ª¡ª Ã»ÓĞÏÔ´æ£¬²»ÄÜÓÃ¡£
-    //  ÏÔ´æÒªµÈÏÂÒ»²½ bind¡£
+    //  æ­¤åˆ»å®ƒè¿˜åªæ˜¯"ä¸€ä¸ªå¸¦ç”¨é€”æ ‡ç­¾çš„ç©ºå£³" â€”â€” æ²¡æœ‰æ˜¾å­˜ï¼Œä¸èƒ½ç”¨ã€‚
+    //  æ˜¾å­˜è¦ç­‰ä¸‹ä¸€æ­¥ bindã€‚
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = info.size;
     bufferInfo.usage = info.usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;   // Ö»¸øÒ»¸ö¶ÓÁĞ×åÓÃ
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;   // åªç»™ä¸€ä¸ªé˜Ÿåˆ—æ—ç”¨
 
     if (vkCreateBuffer(device, &bufferInfo, nullptr, &m_Buffer) != VK_SUCCESS)
     {
         throw std::runtime_error("[VulkanBuffer] vkCreateBuffer failed");
     }
 
-    // ---- 2. ÎÊÇı¶¯"Õâ¿é buffer ÒªÊ²Ã´ÑùµÄÏÔ´æ" ---------------------------
+    // ---- 2. é—®é©±åŠ¨"è¿™å— buffer è¦ä»€ä¹ˆæ ·çš„æ˜¾å­˜" ---------------------------
     //
-    //  ÕâÒ»²½¡¾²»ÄÜÌø¹ı¡¿¡£memoryTypeBits ÊÇ buffer ÌØÓĞµÄ£º
-    //  Ä³Ğ©Éè±¸ÉÏÌØ¶¨ usage Ö»ÄÜÓÃÌØ¶¨ÄÚ´æÀàĞÍ¡£
-    //  Ìø¹ıËüÖ±½Ó²ÂÒ»¸ö typeIndex£¬ÔÚ±ğµÄ»úÆ÷ÉÏ¾Í»áÊ§°Ü¡£
+    //  è¿™ä¸€æ­¥ã€ä¸èƒ½è·³è¿‡ã€‘ã€‚memoryTypeBits æ˜¯ buffer ç‰¹æœ‰çš„ï¼š
+    //  æŸäº›è®¾å¤‡ä¸Šç‰¹å®š usage åªèƒ½ç”¨ç‰¹å®šå†…å­˜ç±»å‹ã€‚
+    //  è·³è¿‡å®ƒç›´æ¥çŒœä¸€ä¸ª typeIndexï¼Œåœ¨åˆ«çš„æœºå™¨ä¸Šå°±ä¼šå¤±è´¥ã€‚
     vkGetBufferMemoryRequirements(device, m_Buffer, &m_Requirements);
 
-    // ---- 3. ÉêÇë backing memory ²¢°ó¶¨ -----------------------------------
+    // ---- 3. ç”³è¯· backing memory å¹¶ç»‘å®š -----------------------------------
     //
-    //  alignment È¡ buffer ÒªÇóºÍµ÷ÓÃ·½ÒªÇóµÄ½Ï´óÖµ¡£
-    //  µ÷ÓÃ·½´« 0 Ê±ÓÃ buffer ×Ô¼ºµÄÒªÇó ¡ª¡ª ÕâÊÇÎ¨Ò»°²È«Ä¬ÈÏÖµ¡£
+    //  alignment å– buffer è¦æ±‚å’Œè°ƒç”¨æ–¹è¦æ±‚çš„è¾ƒå¤§å€¼ã€‚
+    //  è°ƒç”¨æ–¹ä¼  0 æ—¶ç”¨ buffer è‡ªå·±çš„è¦æ±‚ â€”â€” è¿™æ˜¯å”¯ä¸€å®‰å…¨é»˜è®¤å€¼ã€‚
     const VkDeviceSize alignment =
         info.alignment != 0 ? max(info.alignment, m_Requirements.alignment)
         : m_Requirements.alignment;
@@ -43,8 +44,8 @@ VulkanBuffer::VulkanBuffer(VkDevice device, VulkanAllocator& allocator, const Cr
     m_Allocation = allocator.Allocate(info.size, alignment,
         m_Requirements.memoryTypeBits, info.memoryUsage);
 
-    // bind Ö®ºó buffer ²ÅÕæÕı¿ÉÓÃ¡£ÕâÒ»²½Ö»ÊÇ"µÇ¼Ç¶ÔÓ¦¹ØÏµ"£¬
-    // ²»¿½±´Êı¾İ£¬Ò²²»ÊÇÉÏ´«Èë¿Ú¡£
+    // bind ä¹‹å buffer æ‰çœŸæ­£å¯ç”¨ã€‚è¿™ä¸€æ­¥åªæ˜¯"ç™»è®°å¯¹åº”å…³ç³»"ï¼Œ
+    // ä¸æ‹·è´æ•°æ®ï¼Œä¹Ÿä¸æ˜¯ä¸Šä¼ å…¥å£ã€‚
     if (vkBindBufferMemory(device, m_Buffer, m_Allocation.memory, m_Allocation.offset) != VK_SUCCESS)
     {
         throw std::runtime_error("[VulkanBuffer] vkBindBufferMemory failed");
@@ -55,11 +56,11 @@ VulkanBuffer::VulkanBuffer(VkDevice device, VulkanAllocator& allocator, const Cr
 
 VulkanBuffer::~VulkanBuffer()
 {
-    // Ïú»ÙË³Ğò£ºÏÈ VkBuffer£¬ÔÙ°ÑÏÔ´æ»¹¸ø allocator¡£
+    // é”€æ¯é¡ºåºï¼šå…ˆ VkBufferï¼Œå†æŠŠæ˜¾å­˜è¿˜ç»™ allocatorã€‚
     //
-    // ¡¾ÎªÊ²Ã´ÏÈ buffer¡¿ÏÔ´æÀï¿ÉÄÜ»¹ÓĞ buffer ÔÚÓÃµÄÊı¾İ¡£
-    //   ·´¹ıÀ´ÏÈ»¹ÏÔ´æ£¬buffer ¾ÍÖ¸ÏòÒ»¿éÒÑÊÍ·ÅµÄÄÚ´æ¡£
-    //   Vulkan ²»¼ì²éÕâ¸öË³Ğò£¬´íÁËÖ»»áÔÚËæ»úÊ±¿Ì±À¡£
+    // ã€ä¸ºä»€ä¹ˆå…ˆ bufferã€‘æ˜¾å­˜é‡Œå¯èƒ½è¿˜æœ‰ buffer åœ¨ç”¨çš„æ•°æ®ã€‚
+    //   åè¿‡æ¥å…ˆè¿˜æ˜¾å­˜ï¼Œbuffer å°±æŒ‡å‘ä¸€å—å·²é‡Šæ”¾çš„å†…å­˜ã€‚
+    //   Vulkan ä¸æ£€æŸ¥è¿™ä¸ªé¡ºåºï¼Œé”™äº†åªä¼šåœ¨éšæœºæ—¶åˆ»å´©ã€‚
     if (m_Buffer != VK_NULL_HANDLE)
     {
         vkDestroyBuffer(m_Device, m_Buffer, nullptr);
@@ -88,11 +89,49 @@ void VulkanBuffer::Upload(const void* data, VkDeviceSize size, VkDeviceSize offs
         throw std::runtime_error("[VulkanBuffer] Upload range out of bounds");
     }
 
-    // HOST_COHERENT ÄÚ´æµÄĞ´Èë¶Ô GPU Á¢¼´¿É¼û£¬ËùÒÔ memcpy Íê¾Í½áÊøÁË£¬
-    // ²»ĞèÒª vkFlushMappedMemoryRanges¡£
+    // HOST_COHERENT å†…å­˜çš„å†™å…¥å¯¹ GPU ç«‹å³å¯è§ï¼Œæ‰€ä»¥ memcpy å®Œå°±ç»“æŸäº†ï¼Œ
+    // ä¸éœ€è¦ vkFlushMappedMemoryRangesã€‚
     //
-    // ¡¾ÎªÊ²Ã´ÕâÀï²»×öÄÚ´æÆÁÕÏ¡¿CPU/GPU Ö®¼äµÄ¿É¼ûĞÔÓÉ COHERENT ±£Ö¤£»
-    //   GPU ¶à¸ö¶ÓÁĞÖ®¼äµÄÍ¬²½ÊÇÁíÒ»»ØÊÂ£¨½×¶Î 3 µÄĞÅºÅÁ¿ÓëÆÁÕÏ£©¡£
-    //   Á½¼şÊÂ±ğ»ì¡£
+    // ã€ä¸ºä»€ä¹ˆè¿™é‡Œä¸åšå†…å­˜å±éšœã€‘CPU/GPU ä¹‹é—´çš„å¯è§æ€§ç”± COHERENT ä¿è¯ï¼›
+    //   GPU å¤šä¸ªé˜Ÿåˆ—ä¹‹é—´çš„åŒæ­¥æ˜¯å¦ä¸€å›äº‹ï¼ˆé˜¶æ®µ 3 çš„ä¿¡å·é‡ä¸å±éšœï¼‰ã€‚
+    //   ä¸¤ä»¶äº‹åˆ«æ··ã€‚
     std::memcpy(static_cast<char*>(m_Allocation.mapped) + offset, data, size);
+}
+
+void VulkanBuffer::UploadStaged(VulkanCommandPool& pool, VkQueue queue, const void* data, VkDeviceSize size)
+{
+    if (m_IsHostVisible)
+    {
+        throw std::runtime_error("[VulkanBuffer] UploadStaged is for device-local buffers; use Upload instead");
+    }
+    if (size > m_Size)
+    {
+        throw std::runtime_error("[VulkanBuffer] UploadStaged range out of bounds");
+    }
+    // ---- 1. å»º staging buffer --------------------------------------------
+    //
+    //  usage å¿…é¡»æ˜¯ TRANSFER_SRCï¼šå®ƒçš„å”¯ä¸€ç”¨é€”å°±æ˜¯è¢«æ‹·è´èµ°ã€‚
+    //  ç”¨ VERTEX_BUFFER_BIT ä¹Ÿèƒ½è·‘ï¼Œä½†é©±åŠ¨ä¼šä¸ºå®ƒå‡†å¤‡ä¸å¿…è¦çš„è¯»è·¯å¾„ã€‚
+    VulkanBuffer::CreateInfo stagingInfo{};
+    stagingInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    stagingInfo.size = size;
+    stagingInfo.memoryUsage = VulkanAllocator::Usage::CPUToGPU;
+    VulkanBuffer stagingBuffer(m_Device, m_Allocator, stagingInfo);
+    // ---- 2. CPU å†™æ•°æ® ---------------------------------------------------
+    stagingBuffer.Upload(data, size, 0);
+    // ---- 3. GPU æ‹·è´ -----------------------------------------------------
+    //
+    //  SubmitOneShot å†…éƒ¨ä¼šç­‰å¾…å®Œæˆï¼Œæ‰€ä»¥è¿”å›æ—¶æ•°æ®å·²ç»åœ¨ç›®æ ‡ç¼“å†²é‡Œäº†ï¼Œ
+    //  staging å¯ä»¥å®‰å…¨é”€æ¯ã€‚
+    pool.SubmitOneShot(
+        queue, [&](VkCommandBuffer cmd)
+        {
+            VkBufferCopy region{};
+            region.size = size;
+            region.srcOffset = 0;
+            region.dstOffset = 0;
+            vkCmdCopyBuffer(cmd, stagingBuffer.GetHandle(), m_Buffer,1,&region);
+        }
+    );
+
 }

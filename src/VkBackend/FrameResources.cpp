@@ -1,4 +1,4 @@
-#include "FrameResources.h"
+Ôªø#include "FrameResources.h"
 #include <stdexcept>
 void FrameResources::CreateSyncObjects(VkDevice device)
 {
@@ -13,8 +13,8 @@ void FrameResources::CreateSyncObjects(VkDevice device)
 	VkFenceCreateInfo fenceInfo{};
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
-	// ≥ı ºº¥ signaled£¨µ⁄“ª÷°µƒµ»¥˝≤≈ª·¡¢º¥Õ®π˝°£
-	// Õ¸¡À’‚∏ˆ±Í÷æ -> ∆Ù∂Øº¥ø®À¿‘⁄ vkWaitForFences°£
+	// ÂàùÂßãÂç≥ signaledÔºåÁ¨¨‰∏ÄÂ∏ßÁöÑÁ≠âÂæÖÊâç‰ºöÁ´ãÂç≥ÈÄöËøá„ÄÇ
+	// Âøò‰∫ÜËøô‰∏™Ê†áÂøó -> ÂêØÂä®Âç≥Âç°Ê≠ªÂú® vkWaitForFences„ÄÇ
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 	if (vkCreateFence(device, &fenceInfo, nullptr, &InFlight) != VK_SUCCESS)

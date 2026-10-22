@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Core">
+      <UniqueIdentifier>{2EB4837C-1AEB-840D-C3D7-6A10AFED000F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform">
+      <UniqueIdentifier>{2AC788B4-1694-E3BF-3FAD-D1672BD9184E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="VkBackend">
+      <UniqueIdentifier>{6E6C7295-DAD6-260C-2315-D8B18FBE0461}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Application.h" />
+    <ClInclude Include="src\Core\Vertex.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Window.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="src\VkBackend\FrameResources.h">
+      <Filter>VkBackend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\VkBackend\VulkanAllocator.h">
+      <Filter>VkBackend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\VkBackend\VulkanBuffer.h">
+      <Filter>VkBackend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\VkBackend\VulkanCommandPool.h">
+      <Filter>VkBackend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\VkBackend\VulkanContext.h">
+      <Filter>VkBackend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\VkBackend\VulkanPipeline.h">
+      <Filter>VkBackend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\VkBackend\VulkanSwapchain.h">
+      <Filter>VkBackend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Core\PrimitiveDesc.h" />
+    <ClInclude Include="src\Renderer\Mesh.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\Platform\Window.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="src\VkBackend\FrameResources.cpp">
+      <Filter>VkBackend</Filter>
+    </ClCompile>
+    <ClCompile Include="src\VkBackend\VulkanAllocator.cpp">
+      <Filter>VkBackend</Filter>
+    </ClCompile>
+    <ClCompile Include="src\VkBackend\VulkanBuffer.cpp">
+      <Filter>VkBackend</Filter>
+    </ClCompile>
+    <ClCompile Include="src\VkBackend\VulkanCommandPool.cpp">
+      <Filter>VkBackend</Filter>
+    </ClCompile>
+    <ClCompile Include="src\VkBackend\VulkanContext.cpp">
+      <Filter>VkBackend</Filter>
+    </ClCompile>
+    <ClCompile Include="src\VkBackend\VulkanPipeline.cpp">
+      <Filter>VkBackend</Filter>
+    </ClCompile>
+    <ClCompile Include="src\VkBackend\VulkanSwapchain.cpp">
+      <Filter>VkBackend</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Renderer\Mesh.cpp" />
+  </ItemGroup>
+</Project>
