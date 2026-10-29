@@ -29,6 +29,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <functional>
 
 class Window
 {
@@ -36,8 +37,8 @@ public:
     struct WindowProps
     {
         std::string Title = "vulkan_Renderer";
-        uint32_t    Width = 800;
-        uint32_t    Height = 600;
+        uint32_t    Width = 1280;
+        uint32_t    Height =720;
     };
 
     explicit Window(const WindowProps& props);
@@ -81,10 +82,24 @@ public:
     //  【生命周期警告】返回的指针数组由 GLFW 持有，在 glfwTerminate() 之后失效。
     //    调用方必须在 Window 析构前用完（Application 的 Init 里正好满足）。
     std::vector<const char*> GetRequiredInstanceExtensions() const;
+    static double GetTime();
+    // ---- 输入轮询：用于"当前是否按住"这类持续状态 -----------------------
+    //  WASD 移动、右键是否按住，都用这两个，不要用回调 + bool 数组
+    bool IsKeyPressed(int key) const;
+    bool IsMouseButtonPressed(int button) const;
 
+    // ---- 事件注册：用于"移动/滚动"这类离散事件 -------------------------
+    void SetCursorPosCallback(std::function<void(double x, double y)> callback);
+    void SetScrollCallback(std::function<void(double xOffset, double yOffset)> callback);
+
+private:
+    void InstallCallbacks();// 只在构造函数里调一次
 private:
     GLFWwindow* m_Window = nullptr;
     uint32_t    m_Width = 0;
     uint32_t    m_Height = 0;
     WindowProps m_Data;
+    std::function<void(double, double)> m_CursorPosCallback;
+    std::function<void(double, double)> m_ScrollCallback;
+
 };

@@ -131,6 +131,25 @@ void VulkanContext::PrintDeviceInfo() const
     std::printf("[Vulkan] Graphics queue : family %u\n", m_QueueFamilies.GraphicsFamily.value_or(UINT32_MAX));
     std::printf("[Vulkan] Present queue  : family %u\n", GetPresentFamily());
 }
+VkSampleCountFlagBits VulkanContext::GetMaxUsableSampleCount() const
+{
+    //// 这两个是位掩码：第 n 位为 1 表示"支持 2^n 个采样"。
+    //// 例如值为 0x1F 表示支持 1/2/4/8/16。
+    const VkSampleCountFlags counts =
+        m_DeviceProperties.limits.framebufferColorSampleCounts &
+        m_DeviceProperties.limits.framebufferDepthSampleCounts;
+    if (counts & VK_SAMPLE_COUNT_4_BIT)
+    {
+        return VK_SAMPLE_COUNT_4_BIT;
+    }
+    if (counts & VK_SAMPLE_COUNT_2_BIT)
+    {
+        return VK_SAMPLE_COUNT_2_BIT;
+    }
+
+    //return VkSampleCountFlagBits();
+    return  VK_SAMPLE_COUNT_1_BIT;
+}
 // ===========================================================================
 //  1. Instance —— "本程序连接到了 Vulkan 运行库"
 // ===========================================================================
@@ -258,7 +277,7 @@ void VulkanContext::CreateSurface()
     //   Window 取出后经 ContextSpec 传进来。依赖方向保持干净。
     //
     // 【hwnd + hinstance】Win32 surface 的两个必要参数。
-    //   hinstance 传当前模块句柄即可（GetModuleHandle(nullptr)），
+    //   hinstance 传当前模块句柄即可（GetModuleHandle(nullptr)）
     //   Vulkan 只用它做内部标识，不用于创建窗口。
     VkWin32SurfaceCreateInfoKHR surfaceInfo{};
     surfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;

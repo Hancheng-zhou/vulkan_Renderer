@@ -90,7 +90,7 @@ void VulkanSwapchain::Create(bool useOldSwapchain)
     if (extent.width == 0 || extent.height == 0)
         throw std::runtime_error("[VulkanSwapchain] extent is 0 (window minimized?)");
     //3、算图像数量
-    uint32_t imageCount = caps.minImageCount + 1;
+    uint32_t imageCount = caps.minImageCount + 1; // 
     // maxImageCount == 0 表示【无上限】，不是"最多 0 张"
     if (caps.maxImageCount > 0 && imageCount > caps.maxImageCount)
     {

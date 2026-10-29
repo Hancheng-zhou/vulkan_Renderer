@@ -116,6 +116,7 @@ project "vulkan_Renderer"
 			"VK_USE_PLATFORM_WIN32_KHR",
 			-- 保留你 ZHC 里的 GLM 宏定义
 			"GLM_ENABLE_EXPERIMENTAL",
+			"GLM_FORCE_DEPTH_ZERO_TO_ONE",--让 glm::perspective 生成 z ∈ [0,1] 的投影矩阵
 			"_CRT_SECURE_NO_WARNINGS",
 		}
 

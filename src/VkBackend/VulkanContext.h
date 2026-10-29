@@ -130,6 +130,9 @@ public:
 
 	//打印函数
 	void PrintDeviceInfo() const;
+	//查询 本机硬件支持的最大重采样数
+	//同一个rendering所有附件 采样数必须一致
+	VkSampleCountFlagBits GetMaxUsableSampleCount() const;
 
 private:
 	//------初始化函数 顺序很重要---------

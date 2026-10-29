@@ -1,22 +1,28 @@
 #version 450
 
-layout(location = 0) in vec3 fragColor;
-// 【location 必须是 0】
-//   fragment shader 的 out location == 颜色附件索引。
-//   我们只有一个颜色附件（VkRenderingInfo::pColorAttachments[0]），
-//   所以这里只能是 0。
-//
-//   写成 1 不会导致失败，只会被校验层警告"写入的附件不存在"，
-//   且这次写入被丢弃 —— 画面可能正常（因为 location 0 没写，附件内容
-//   是未定义的），也可能全黑，取决于驱动。
-//
-//   注意：fragment 的 in 和 out 是两个独立的 location 空间。
-//   in location 0 来自 vertex 的 out location 0；
-//   out location 0 去颜色附件 0。两者同号不冲突。
+layout(location = 0) in  vec3 vWorldNormal;
+layout(location = 1) in  vec3 vWorldPos;
+
 layout(location = 0) out vec4 outColor;
 
 void main()
 {
-	outColor = vec4(fragColor, 1.0);
+    // ---- 一个最小化的 Lambert 光照 ---------------------------------------
+    //
+    // 【为什么现在就加光照】多物体场景里如果只有法线着色，
+    //   所有立方体看起来一模一样（法线相同），只能靠位置区分。
+    //   加一个固定方向光之后，每个面有明暗层次，立体感和空间关系一目了然。
+    //
+    // 【为什么写死在 shader 里】光照参数应该走 UBO（阶段 7 的 Light），
+    //   现在只有一个方向光，写死能少一个 descriptor binding。
+    const vec3 kLightDir = normalize(vec3(0.5, 1.0, 0.35));   // 指向光源
+    const vec3 kBaseColor = vec3(0.85, 0.75, 0.65);
+    const vec3 kAmbient   = vec3(0.15);
 
+    vec3 N = normalize(vWorldNormal);
+    float ndotl = max(dot(N, kLightDir), 0.0);
+
+    vec3 lit = kBaseColor * (kAmbient + ndotl * 0.85);
+
+    outColor = vec4(lit, 1.0);
 }

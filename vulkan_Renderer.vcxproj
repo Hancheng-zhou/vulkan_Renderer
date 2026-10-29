@@ -106,31 +106,43 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Renderer\Camera.h" />
+    <ClInclude Include="src\Renderer\CameraController.h" />
     <ClInclude Include="src\Renderer\Mesh.h" />
     <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\Core\PrimitiveDesc.h" />
     <ClInclude Include="src\Core\Vertex.h" />
     <ClInclude Include="src\Platform\Window.h" />
+    <ClInclude Include="src\Renderer\RenderObject.h" />
+    <ClInclude Include="src\Renderer\Transform.h" />
+    <ClInclude Include="src\Scene\Scene.h" />
     <ClInclude Include="src\VkBackend\FrameResources.h" />
     <ClInclude Include="src\VkBackend\VulkanAllocator.h" />
     <ClInclude Include="src\VkBackend\VulkanBuffer.h" />
     <ClInclude Include="src\VkBackend\VulkanCommandPool.h" />
     <ClInclude Include="src\VkBackend\VulkanContext.h" />
+    <ClInclude Include="src\VkBackend\VulkanImage.h" />
     <ClInclude Include="src\VkBackend\VulkanPipeline.h" />
     <ClInclude Include="src\VkBackend\VulkanSwapchain.h" />
+    <ClInclude Include="src\VkBackend\VulkanDescriptor.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Renderer\Camera.cpp" />
+    <ClCompile Include="src\Renderer\CameraController.cpp" />
     <ClCompile Include="src\Renderer\Mesh.cpp" />
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\Platform\Window.cpp" />
+    <ClCompile Include="src\Scene\Scene.cpp" />
     <ClCompile Include="src\VkBackend\FrameResources.cpp" />
     <ClCompile Include="src\VkBackend\VulkanAllocator.cpp" />
     <ClCompile Include="src\VkBackend\VulkanBuffer.cpp" />
     <ClCompile Include="src\VkBackend\VulkanCommandPool.cpp" />
     <ClCompile Include="src\VkBackend\VulkanContext.cpp" />
+    <ClCompile Include="src\VkBackend\VulkanImage.cpp" />
     <ClCompile Include="src\VkBackend\VulkanPipeline.cpp" />
     <ClCompile Include="src\VkBackend\VulkanSwapchain.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\VkBackend\VulkanDescriptor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="vendor\GLFW\GLFW.vcxproj">

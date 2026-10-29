@@ -2,7 +2,7 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 #include <stdexcept>
-
+#include <utility>
 Window::Window(const WindowProps& props)
     : m_Width(props.Width)
     , m_Height(props.Height)
@@ -45,6 +45,8 @@ Window::Window(const WindowProps& props)
 
     m_Width = static_cast<uint32_t>(framebufferWidth);
     m_Height = static_cast<uint32_t>(framebufferHeight);
+    //初始化回调函数
+    InstallCallbacks();
 }
 
 Window::~Window()
@@ -109,4 +111,50 @@ std::vector<const char*> Window::GetRequiredInstanceExtensions() const
     // 拷贝一份。GLFW 内部那块数组的生存期不属于我们，
     // 直接存指针的话，之后每次访问都要担心它有没有被 GLFW 释放。
     return std::vector<const char*>(extensions, extensions + extensionCount);
+}
+
+double Window::GetTime()
+{
+    return glfwGetTime();
+}
+
+bool Window::IsKeyPressed(int key) const
+{
+    return glfwGetKey(m_Window, key) == GLFW_PRESS;
+}
+
+bool Window::IsMouseButtonPressed(int button) const
+{
+    return glfwGetMouseButton(m_Window, button) == GLFW_PRESS;
+}
+
+void Window::SetCursorPosCallback(std::function<void(double x, double y)> callback)
+{
+    m_CursorPosCallback = std::move(callback);
+}
+
+void Window::SetScrollCallback(std::function<void(double xOffset, double yOffset)> callback)
+{
+    m_ScrollCallback = std::move(callback);
+}
+
+void Window::InstallCallbacks()
+{
+    glfwSetWindowUserPointer(m_Window, this);
+    glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double x, double y) 
+        {
+            auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+            if (self && self->m_CursorPosCallback)
+            {
+                self->m_CursorPosCallback(x, y);
+            }
+        });
+    glfwSetScrollCallback(m_Window, [](GLFWwindow* window, double xOffset, double yOffset)
+        {
+            auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+            if (self && self->m_ScrollCallback)
+            {
+                self->m_ScrollCallback(xOffset, yOffset);
+            }
+        });
 }

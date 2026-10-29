@@ -53,16 +53,12 @@ VulkanPipeline::VulkanPipeline(const CreateInfo& info):m_Device(info.device)
     vertexInput.pVertexBindingDescriptions = info.vertexBindings.empty() ? nullptr : info.vertexBindings.data();
     vertexInput.vertexAttributeDescriptionCount = static_cast<uint32_t>(info.vertexAttributes.size());
     vertexInput.pVertexAttributeDescriptions = info.vertexAttributes.empty() ? nullptr : info.vertexAttributes.data();
-
-
-    // vertexBindingDescriptionCount   = 0
-    // vertexAttributeDescriptionCount = 0
     // ---- 4. 图元装配 -----------------------------------------------------
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     // primitiveRestartEnable 保持 false：只有 strip 拓扑才需要它
-    // ---- 5. 视口状态：数量必须填，具体值靠动态设置 -----------------------
+    // ---- 5. 视口状态：数量必须填，具体值靠动态设置（application上设置） -----------------------
     //
     //  【坑点】即使 viewport/scissor 是动态的，这里的 count 也必须填 1。
     //    count 为 0 会被校验层判为非法（它检查的是"声明了要几个"）。
@@ -89,15 +85,31 @@ VulkanPipeline::VulkanPipeline(const CreateInfo& info):m_Device(info.device)
     //   配反的后果是静默的：物体整个消失，或者只剩内部的面，
     //   校验层不会报任何错。
     rasterizer.cullMode  = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
     rasterizer.depthClampEnable = VK_FALSE;
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.depthBiasEnable = VK_FALSE;
-    // ---- 7. 多重采样：关（1 个采样点 = 不启用 MSAA）----------------------
+    // ---- 7. 多重采样 -----------------------------------------------------
+    //
+    // 【这里就是 MSAA 的开关】
+    //   rasterizationSamples = 1 时，每个像素只采样中心点，边缘是硬切换（锯齿）。
+    //   = 4 时，驱动把每个像素拆成 4 个子样本位置分别判定覆盖，
+    //   边缘像素会得到 1/4、2/4、3/4 的部分覆盖率，
+    //   最终由 resolve 平均成一个中间色。
+    //
+    // 【为什么它必须和附件一致】
+    //   管线说"我会用 4x 光栅化"，而颜色附件只有 1 个样本时，
+    //   驱动没有地方存放另外 3 个子样本的结果 —— 直接创建失败。
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampling.rasterizationSamples = info.samples;
+
+    // 【sampleShadingEnable 保持 FALSE】
+    //   TRUE = 每个子样本都单独跑一遍片元着色器（per-sample shading），
+    //          质量略高但着色成本 ×4。
+    //   FALSE = 每个像素只着色一次，覆盖率只影响 resolve 时的权重。
+    //   绝大多数场景用 FALSE —— MSAA 的价值在几何边缘，不在着色精度。
     multisampling.sampleShadingEnable = VK_FALSE;
     // ---- 8. 颜色混合：直接覆盖 -------------------------------------------
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
@@ -111,6 +123,29 @@ VulkanPipeline::VulkanPipeline(const CreateInfo& info):m_Device(info.device)
     colorBlending.logicOpEnable = VK_FALSE;
     colorBlending.attachmentCount = 1;
     colorBlending.pAttachments = &colorBlendAttachment;
+    // ---- 8.5 深度/模板状态 -----------------------------------------------
+    //
+    //  【这里是 OpenGL 的 glEnable(GL_DEPTH_TEST) + glDepthFunc(GL_LESS)
+    //    搬进不可变管线后的形态】
+    //
+    //  depthTestEnable   —— 是否比较深度。关掉就是 6c 里"后面盖住前面"的行为
+    //  depthWriteEnable  —— 通过比较后是否写回深度图。
+    //                       透明物体阶段会把它关掉（半透明不该遮挡后面的东西）
+    //  depthCompareOp    —— 判定规则。LESS = "新深度更小才通过"。
+    //                       因为我们的投影矩阵是 [0,1]（GLM_FORCE_DEPTH_ZERO_TO_ONE），
+    //                       近处 = 0，远处 = 1，所以"更小"就是"更近"。
+    //                       【填错成 GREATER 的表现是物体像从里面看，前后完全颠倒】
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = VK_TRUE;
+    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.stencilTestEnable = VK_FALSE;
+    // 这两项只在 depthBoundsTestEnable 为 TRUE 时生效，
+    // 但校验层要求它们落在 [0,1] 内，所以顺手填对。
+    depthStencil.minDepthBounds = 0.0f;
+    depthStencil.maxDepthBounds = 1.0f;
     // ---- 9. 动态状态 -----------------------------------------------------
     //
     //  声明"这两项在录制时设置"。管线里不固化它们，resize 时就不必重建。
@@ -145,7 +180,12 @@ VulkanPipeline::VulkanPipeline(const CreateInfo& info):m_Device(info.device)
         layoutInfo.pushConstantRangeCount = 1;
         layoutInfo.pPushConstantRanges    = &pushRange;
     }
-
+    // descriptor set 布局：告诉管线"shader 会从 set 0 读资源"
+    if (info.descriptorSetLayout != VK_NULL_HANDLE)
+    {
+        layoutInfo.setLayoutCount = 1;
+        layoutInfo.pSetLayouts = &info.descriptorSetLayout;
+    }
     ThrowOnFailed(vkCreatePipelineLayout(m_Device, &layoutInfo, nullptr, &m_Layout),
         "vkCreatePipelineLayout");
     // ---- 11. Dynamic Rendering 的附件格式声明 ----------------------------
@@ -162,6 +202,11 @@ VulkanPipeline::VulkanPipeline(const CreateInfo& info):m_Device(info.device)
     renderingInfo.colorAttachmentCount = 1;
     renderingInfo.pColorAttachmentFormats = &info.colorFormat;
     // depthAttachmentFormat / stencilAttachmentFormat 留空（阶段 8 才有深度）
+    renderingInfo.depthAttachmentFormat = info.depthFormat;
+    renderingInfo.stencilAttachmentFormat = 
+        info.depthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT || 
+        info.depthFormat == VK_FORMAT_D24_UNORM_S8_UINT ?
+        info.depthFormat : VK_FORMAT_UNDEFINED;
     // ---- 12. 组装并创建 --------------------------------------------------
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -176,7 +221,12 @@ VulkanPipeline::VulkanPipeline(const CreateInfo& info):m_Device(info.device)
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = m_Layout;
-
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynamicState;
+    if (info.depthFormat != VK_FORMAT_UNDEFINED)
+    {
+        pipelineInfo.pDepthStencilState = &depthStencil;
+    }
     // 【必须为 VK_NULL_HANDLE】动态渲染不用 RenderPass。
     //   填了有效句柄反而会和 pNext 里的 RenderingCreateInfo 冲突。
     pipelineInfo.renderPass = VK_NULL_HANDLE;
@@ -201,8 +251,9 @@ VulkanPipeline::VulkanPipeline(const CreateInfo& info):m_Device(info.device)
             std::to_string(static_cast<int>(createResult)));
     }
 
-    std::printf("[Pipeline] created (dynamic rendering, %s)\n",
-        info.vertexSpvPath.c_str());
+    std::printf("[Pipeline] created (dynamic rendering, %s, %ux MSAA)\n",
+        info.vertexSpvPath.c_str(),
+        static_cast<uint32_t>(info.samples));
 }
 
 VulkanPipeline::~VulkanPipeline()

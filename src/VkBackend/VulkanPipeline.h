@@ -38,6 +38,12 @@ public:
 	{
 		VkDevice device = VK_NULL_HANDLE;
 		VkFormat colorFormat = VK_FORMAT_UNDEFINED;
+		// 深度附件格式。VK_FORMAT_UNDEFINED = 这条管线不用深度。
+		//
+		// 【必须与渲染时的深度图格式一致】不一致会在 vkCreateGraphicsPipelines
+		//   时失败，或校验层报 VUID-VkGraphicsPipelineCreateInfo-renderPass-06053。
+		VkFormat depthFormat = VK_FORMAT_UNDEFINED;
+		VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
 		std::string vertexSpvPath;
 		std::string fragSpvPath;
 		// ---- 顶点输入 ----------------------------------------------------
@@ -50,6 +56,11 @@ public:
 		//    将来不同物体可能有不同顶点布局。
 		std::vector<VkVertexInputBindingDescription>   vertexBindings;
 		std::vector<VkVertexInputAttributeDescription> vertexAttributes;
+		// shader 用的 descriptor set 布局。VK_NULL_HANDLE = 不用 descriptor。
+		//
+		// 【为什么由调用方传】管线不知道"相机数据放在哪个 set 上"，
+		// 那是场景层的组织方式。传进来比在管线里写死更灵活。
+		VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
 
 		// ---- 推送常量 ----------------------------------------------------
 		//  大小（字节），0 = 不使用。

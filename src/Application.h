@@ -25,8 +25,11 @@
 
 #include <memory>
 #include <vector>
+#include <vulkan/vulkan.h>
 #include "Platform/Window.h"
 #include "VkBackend/FrameResources.h"  
+#include "Renderer/Camera.h"
+
 class VulkanContext;
 class VulkanAllocator;
 class VulkanSwapchain;
@@ -35,6 +38,11 @@ class Mesh;
 struct FrameResources;
 class VulkanPipeline;
 class VulkanBuffer;
+class VulkanDescriptor;
+class CameraController;
+class Scene;
+class VulkanImage;
+
 class Application
 {
 public:
@@ -65,7 +73,13 @@ private:
     // 按【交换链图像数量】创建/销毁 renderFinished 信号量。
     void CreateRenderFinishedSemaphores();
     void DestroyRenderFinishedSemaphores();
-
+    // 按当前交换链尺寸创建深度图。
+    // 【必须和 swapchain 同步重建】尺寸不匹配时校验层会报
+    //   "depthAttachment extent is smaller than renderArea extent"，
+    //   表现为画面边缘出现未定义的条纹。
+    void CreateDepthImage();
+    // 按当前交换链尺寸创建 MSAA 颜色图。m_SampleCount == 1 时不创建。
+    void CreateMsaaColorImage();
 private:
     // ---- 多帧并行深度 ----------------------------------------------------
     //
@@ -80,6 +94,12 @@ private:
     //    2 已经能填满流水线；3 只增加延迟和显存，收益很小。
     //    这个值是性能调优点，不是正确性要求，2 是安全默认。
     static constexpr uint32_t k_MaxFramesInFlight = 2;
+    // 【为什么用 D32_SFLOAT】它是规范保证支持的深度格式里最简单的一种：
+    //   32 位浮点，无 stencil。精度足够，且 aspect 只有 DEPTH_BIT，
+    //   省掉 stencil 那一堆配置。
+    //   需要模板（比如描边、延迟渲染）时换成 D24_UNORM_S8_UINT。
+    static constexpr VkFormat k_DepthFormat = VK_FORMAT_D32_SFLOAT;
+
     // ---- 成员顺序即析构顺序（逆序）----
     //
     //  m_Allocator 必须声明在 m_Context 之前：它持有的 VkDeviceMemory
@@ -93,8 +113,22 @@ private:
     std::unique_ptr <VulkanSwapchain> m_Swapchain;
     std::unique_ptr<VulkanCommandPool> m_CommandPool;
     std::unique_ptr<VulkanPipeline> m_Pipeline;
+    std::unique_ptr<VulkanImage> m_DepthImage;
+    // ---- MSAA ----------------------------------------------------------
+    //
+    //  实际使用的采样数。Init() 里查一次，之后不变。
+    //  【为什么存成员而不是每次查】它决定了三张图的创建参数和
+    //    pipeline 的配置，散在多个地方各查一次容易不一致。
+    VkSampleCountFlagBits m_SampleCount = VK_SAMPLE_COUNT_1_BIT;
+
+    // 4x 颜色图。仅当 m_SampleCount > 1 时存在。
+    //   【必须和 m_DepthImage 同尺寸同采样数】
+    std::unique_ptr<VulkanImage> m_MsaaColorImage;
     std::vector<FrameResources> m_Frames;
-    std::unique_ptr<Mesh> m_Mesh;
+    // 每帧一份相机 UBO。数量 = k_MaxFramesInFlight。
+    // 【为什么不能共用一份】CPU 写第 N 帧时，GPU 可能还在读第 N-1 帧的。
+    std::vector<std::unique_ptr<VulkanBuffer>> m_CameraUniformBuffers;
+    std::unique_ptr<VulkanDescriptor> m_Descriptor;
     // ---- 按【交换链图像】索引的 renderFinished 信号量 --------------------
     //
     //  【为什么不能放进 FrameResources（按帧索引）】
@@ -112,7 +146,9 @@ private:
     //  【数量必须随交换链图像数变化】
     //    重建 swapchain 时调用 CreateRenderFinishedSemaphores() 同步重建。
     std::vector<VkSemaphore> m_RenderFinishedSemaphores;
-
     uint32_t m_FrameIndex = 0;
+    std::unique_ptr<Scene> m_Scene;
+    std::unique_ptr<CameraController> m_CameraController;
+    
     bool m_Running = false;
 };
